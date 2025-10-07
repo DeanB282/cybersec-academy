@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>CyberSec Academy — Real-World Cybersecurity</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind config MUST be defined before the CDN script -->
   <script>
+    window.tailwind = window.tailwind || {};
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -21,8 +21,9 @@
       }
     }
   </script>
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Icons & code highlight -->
+  <!-- Highlight.js, Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
@@ -55,6 +56,19 @@
     data-presets="env,react"
     data-plugins="proposal-class-properties,proposal-object-rest-spread,proposal-optional-chaining,proposal-nullish-coalescing-operator">
 
+/* ===== Tiny error catcher so you never see a blank page ===== */
+window.addEventListener('error', (e)=>{
+  const msg = (e && e.message) ? e.message : String(e);
+  const box = document.createElement('div');
+  box.style.position='fixed'; box.style.zIndex=99999; box.style.left='16px'; box.style.right='16px';
+  box.style.bottom='16px'; box.style.padding='12px 14px'; box.style.borderRadius='10px';
+  box.style.background='#B00020'; box.style.color='white'; box.style.fontFamily='system-ui, sans-serif';
+  box.style.boxShadow='0 10px 30px rgba(0,0,0,.3)';
+  box.textContent = 'Runtime error: ' + msg + ' (open DevTools → Console for details)';
+  document.body.appendChild(box);
+  setTimeout(()=>box.remove(), 8000);
+});
+
 /* ===== Motion fallbacks ===== */
 const __FM = window['framer-motion'] || {};
 const motion = __FM.motion || new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
@@ -64,7 +78,6 @@ const AnimatePresence = __FM.AnimatePresence || (({children}) => React.createEle
 const CONFIG = {
   USE_FIREBASE: false,
   FIREBASE_CONFIG: {
-    // Enable for real auth/cloud sync:
     // apiKey: "YOUR_API_KEY",
     // authDomain: "YOUR_PROJECT.firebaseapp.com",
     // projectId: "YOUR_PROJECT",
@@ -412,7 +425,7 @@ function ItemAnalysis({moduleId,onClose}){
   </div>;
 }
 
-/* ===== Story blocks (richer) ===== */
+/* ===== Story blocks ===== */
 function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}catch{}},[]);
   if(block.type==='text') return <p className="text-white/85 leading-relaxed">{block.content}</p>;
   if(block.type==='callout') return <div className={cx("p-4 rounded border", block.tone==='warn'?"bg-yellow-500/10 border-yellow-500/30":"bg-white/5 border-white/10")}>{block.content}</div>;
@@ -433,7 +446,6 @@ function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}cat
   return null;
 }
 
-/* Scenario recap extractor */
 function getScenarioText(module){
   const scene = (module.story||[]).find(b=>b.type==='scene' && /briefing/i.test(b.title||'')) || (module.story||[]).find(b=>b.type==='scene');
   return scene?.content || '';
@@ -513,7 +525,7 @@ function LessonModule({module,user,onClose,onProgress}){
   </div>;
 }
 
-/* ===== Tool modal (bright) ===== */
+/* ===== Tool modal ===== */
 function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool]||TOOL_DB['Wireshark'];
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
     <BrightOverlay onClick={onClose}/>
@@ -576,8 +588,8 @@ function LinuxCheatSheet({onClose}){
   const [q,setQ]=useState('');
   const inputRef=useRef(null);
   useEffect(()=>{ inputRef.current?.focus(); },[]);
-  const handleChange=(e)=>{ setQ(e.target.value); };  // no blur on change
-  const handleKeyDown=(e)=>{ e.stopPropagation(); };   // keep focus inside
+  const handleChange=(e)=>{ setQ(e.target.value); };
+  const handleKeyDown=(e)=>{ e.stopPropagation(); };
   const list=SECTIONS.map(s=>({...s, items:s.items.filter(([cmd,desc])=>cmd.toLowerCase().includes(q.toLowerCase())||desc.toLowerCase().includes(q.toLowerCase()))})).filter(s=>s.items.length>0);
   const copy=(text)=>{ navigator.clipboard?.writeText(text); };
   return (
@@ -617,7 +629,6 @@ const FOUNDATIONS_10=[
   "Cloud Security Basics","Foundations Capstone"
 ];
 
-/* Network & SQL authored lists kept as before ... */
 const NETWORK_10=[
   "Packet Capture Triage (Wireshark + Zeek)","TCP/IP Deep Dive","Subnetting & Routing Basics","Switching & VLANs",
   "DNS In Depth","TLS Handshake & PKI","Firewalls & ACLs","IDS/IPS Concepts","BGP Basics & Security (Concepts)","Network Capstone"
@@ -628,7 +639,6 @@ const SQL_10=[
   "Audit Logging & Triggers (Concepts)","Encryption at Rest & in Transit","SQL Capstone"
 ];
 
-/* Blue / Red / DevSecOps / AI */
 const BLUE_10=[
   "C2 Beacon Hunt with Zeek + SPL","Windows Eventing (Sysmon)","Network Telemetry (NetFlow/PCAP)","DNS Security",
   "Detection Engineering 1","Alert Triage & Escalation","Cloud Logs (AWS/GCP/Azure)","Endpoint Telemetry (EDR)",
@@ -686,7 +696,7 @@ function defaultModule(id, title, tools=[], objective="Hands-on learning objecti
   };
 }
 
-/* Authored modules (sample deep ones) */
+/* Authored modules (deep samples) */
 const AUTHORED = {
   network: {
     "Packet Capture Triage (Wireshark + Zeek)": {
@@ -823,7 +833,7 @@ const TRACKS = {
   sql:         buildTrack('sql', SQL_10),
 };
 
-/* ===== Unlock logic: lock modules after 5 until first five are completed ===== */
+/* ===== Unlock logic (5-at-a-time) ===== */
 function getCompletedCount(progressTrack){ return Object.keys(progressTrack||{}).length; }
 function isPhaseLocked(indexInTrack, progressTrack){
   const completed = getCompletedCount(progressTrack);
@@ -929,28 +939,28 @@ function AuthModal({onClose,onAuthed}){
   </div>;
 }
 
-/* ===== Simple hash router (Back/Forward fix) ===== */
+/* ===== Simple hash router ===== */
 const Router = {
   to(page){ if(location.hash!==`#/${page}`){ history.pushState(null,'',`#/${page}`); } },
   read(){ const m=location.hash.match(/^#\/(\w+)/); return m? m[1] : 'home'; },
   listen(cb){ const h=()=>cb(Router.read()); window.addEventListener('hashchange',h); return ()=>window.removeEventListener('hashchange',h); }
 };
 
-/* ===== Logo SVG ===== */
+/* ===== Logo SVG (fixed JSX — no HTML comments; camelCase SVG props) ===== */
 function Logo(){
   return (
     <div className="flex items-center gap-3">
       <div className="relative">
         <div className="absolute inset-0 rounded-full animate-[pulse-ring_1.8s_ease-out_infinite]"></div>
-        <!-- Shield logo -->
+        {/** Shield logo */}
         <svg width="40" height="40" viewBox="0 0 24 24" className="drop-shadow" aria-hidden="true">
           <defs>
             <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#8a2be2"/>
+              <stop offset="0%" stopColor="#00d4ff"/><stop offset="100%" stopColor="#8a2be2"/>
             </linearGradient>
           </defs>
           <path d="M12 2l7 3v5c0 5-3.4 9.6-7 11-3.6-1.4-7-6-7-11V5l7-3z" fill="url(#g)"/>
-          <path d="M9 11l2 2 4-4" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 11l2 2 4-4" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
       <div className="text-lg font-bold">CyberSec Academy</div>
