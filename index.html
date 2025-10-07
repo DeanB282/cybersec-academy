@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>CyberSec Academy — Real-World Cybersecurity</title>
 
-  <!-- Tailwind (CDN JIT) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -20,19 +20,18 @@
     }
   </script>
 
-  <!-- Icons & Highlighting -->
+  <!-- Icons & code highlight -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
-  <!-- React + Babel -->
+  <!-- React / Babel / Motion -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Framer Motion (UMD) -->
   <script src="https://unpkg.com/framer-motion@11.3.31/dist/framer-motion.umd.js"></script>
 
-  <!-- Firebase (compat; optional) -->
+  <!-- Firebase (optional real backend) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -54,14 +53,14 @@
     data-presets="env,react"
     data-plugins="proposal-class-properties,proposal-object-rest-spread,proposal-optional-chaining,proposal-nullish-coalescing-operator">
 
-/* ===== Motion fallback so the page never blanks ===== */
+/* ===== Motion fallbacks ===== */
 const __FM = window['framer-motion'] || {};
 const motion = __FM.motion || new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
 const AnimatePresence = __FM.AnimatePresence || (({children}) => React.createElement(React.Fragment, null, children));
 
-/* ===== Config (flip USE_FIREBASE to true for real auth/cloud) ===== */
+/* ===== Config (flip USE_FIREBASE true for real auth + cloud) ===== */
 const CONFIG = {
-  USE_FIREBASE: false, // true => paste your Firebase config below
+  USE_FIREBASE: false,
   FIREBASE_CONFIG: {
     // apiKey: "YOUR_API_KEY",
     // authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -70,12 +69,8 @@ const CONFIG = {
     // messagingSenderId: "SENDER_ID",
     // appId: "APP_ID"
   },
-  USE_SQL_BACKEND: false,
-  SQL_BACKEND_URL: "http://localhost:3000",
-
-  /* Real lab backend (optional) */
   USE_LABS: false,
-  LABS_URL: "http://localhost:4000", // your future ephemeral lab orchestration
+  LABS_URL: "http://localhost:4000",
 };
 
 const { useState, useEffect, useMemo, useRef } = React;
@@ -83,25 +78,18 @@ const cx = (...c)=>c.filter(Boolean).join(' ');
 const wait = (ms)=>new Promise(r=>setTimeout(r, ms));
 const escapeHtml = (s='')=>s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
-/* ===== Auth/DB bootstrap ===== */
+/* ===== Firebase / local demo auth ===== */
 const appState = { firebaseApp:null, auth:null, db:null, user:null };
-
-function initFirebaseIfNeeded() {
-  if (!CONFIG.USE_FIREBASE) return;
-  if (!CONFIG.FIREBASE_CONFIG?.apiKey) return;
-  try {
-    appState.firebaseApp = firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
-    appState.auth = firebase.auth();
-    appState.db = firebase.firestore();
-  } catch(e){ console.warn('Firebase init:', e?.message); }
+function initFirebaseIfNeeded(){ if(!CONFIG.USE_FIREBASE) return;
+  if(!CONFIG.FIREBASE_CONFIG?.apiKey) return; try{
+    appState.firebaseApp=firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
+    appState.auth=firebase.auth(); appState.db=firebase.firestore();
+  }catch(e){ console.warn('Firebase init:', e?.message); }
 }
-
 async function sha256(txt){ if(!crypto?.subtle) return txt; const enc=new TextEncoder().encode(txt);
   const h=await crypto.subtle.digest('SHA-256',enc); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
-
 async function signUp(email, password){
-  if(appState.auth){
-    const res=await appState.auth.createUserWithEmailAndPassword(email,password);
+  if(appState.auth){ const res=await appState.auth.createUserWithEmailAndPassword(email,password);
     return { uid:res.user.uid, email:res.user.email };
   } else {
     const hash=await sha256(password), uid=`uid_${Math.random().toString(36).slice(2,9)}`;
@@ -110,8 +98,7 @@ async function signUp(email, password){
   }
 }
 async function signIn(email, password){
-  if(appState.auth){
-    const res=await appState.auth.signInWithEmailAndPassword(email,password);
+  if(appState.auth){ const res=await appState.auth.signInWithEmailAndPassword(email,password);
     return { uid:res.user.uid, email:res.user.email };
   } else {
     const users=JSON.parse(localStorage.getItem('demoUsers')||'{}'); const u=users[email];
@@ -121,14 +108,11 @@ async function signIn(email, password){
   }
 }
 async function signOut(){ if(appState.auth) await appState.auth.signOut(); appState.user=null; }
-
 async function saveProgress(uid,data){
   if(CONFIG.USE_FIREBASE && appState.db){
     await appState.db.collection('users').doc(uid).set({ email: appState.user.email },{merge:true});
     await appState.db.collection('users').doc(uid).collection('progress').doc('main').set(data,{merge:true});
-  } else {
-    localStorage.setItem(`progress_${uid}`, JSON.stringify(data));
-  }
+  } else localStorage.setItem(`progress_${uid}`, JSON.stringify(data));
 }
 async function loadProgress(uid){
   if(CONFIG.USE_FIREBASE && appState.db){
@@ -139,289 +123,175 @@ async function loadProgress(uid){
   }
 }
 
-/* ===== Tool explainers (clickable in lessons) ===== */
+/* ===== Tool explainers ===== */
 const TOOL_DB = {
   Wireshark:{ what:"Network protocol analyzer to capture/inspect packets.",
     steps:["Go to wireshark.org","Download for your OS","Install (Npcap on Windows)","Open, choose interface, Start."],
     link:"https://www.wireshark.org/" },
   Zeek:{ what:"Network security monitor that parses traffic into rich logs.",
-    steps:["Install Zeek","Run on interface/pcap","Review conn/http/dns logs","Pivot to SIEM for hunts."],
+    steps:["Install Zeek","Run on pcap: zeek -r file.pcap","Review conn/dns/http logs","Pivot to SIEM."],
     link:"https://zeek.org/" },
   Splunk:{ what:"SIEM for search/alerts/dashboards.",
     steps:["Install/trial Splunk","Ingest logs (UF/HEC)","Search with SPL","Make alerts/dashboards."],
     link:"https://www.splunk.com/" },
-  "ELK Stack":{ what:"Elasticsearch + Logstash + Kibana.",
-    steps:["Cloud or Docker compose","Ship logs via beats","Kibana index pattern","Dashboards & detections."],
+  ELK:{ what:"Elasticsearch, Logstash, Kibana.",
+    steps:["Cloud or docker compose","Ship beats/logs","Kibana index pattern","Dashboards."],
     link:"https://www.elastic.co/elk-stack" },
   Nmap:{ what:"Network scanner for hosts/services.",
     steps:["Install nmap","Quick: nmap -sS subnet","Version: -sV","OS: -O"],
     link:"https://nmap.org/" },
   "Burp Suite":{ what:"Web security testing proxy.",
-    steps:["Download Burp","Run and set browser proxy 127.0.0.1:8080","Install CA cert","Intercept & test."],
+    steps:["Download Burp","Set browser proxy 127.0.0.1:8080","Install CA cert","Intercept & test."],
     link:"https://portswigger.net/burp" },
-  Snyk:{ what:"SCA/SAST/Container/IaC scanning.",
-    steps:["Sign up","Connect repo","Enable scans","Fix via PRs."],
-    link:"https://snyk.io/" },
   Trivy:{ what:"Container & IaC scanner.",
     steps:["Install trivy","trivy image nginx:latest","trivy config ./infra","Export reports."],
-    link:"https://aquasecurity.github.io/trivy/" },
-  "IBM ART":{ what:"Adversarial Robustness Toolbox for AI.",
-    steps:["pip install art","Wrap model","Run FGSM/PGD","Adversarial training."],
-    link:"https://adversarial-robustness-toolbox.org/" }
+    link:"https://aquasecurity.github.io/trivy/" }
 };
 
-/* ===== Track titles (30 each) ===== */
-const FOUNDATIONS_30=[ "The Internet Under Attack","Recon & Network Basics","Web App Security 101","Authentication & Authorization","Intro to Cryptography","Secure Coding (Top 10)","Linux Security Fundamentals","Windows Security Fundamentals","Cloud Security Basics","Threat Modeling","Security Policies & Risk","Privacy & Compliance","Email Security & Phishing","Endpoint Security","Patch & Vulnerability Mgmt","Password & MFA Strategy","Backups & Ransomware Basics","Wireless Security","Social Engineering Defense","Secure Browsing & Privacy","Secure File Transfer","Logging Fundamentals","Intro to SIEM","Basic Incident Handling","Forensics Basics","Threat Intelligence 101","Secure Remote Work","Security Culture","Security Metrics","Foundations Capstone" ];
+/* ===== Helper UI ===== */
+function Badge({children, tone='brand'}){ const m={ brand:'bg-brand/20 text-brand ring-1 ring-brand/40', green:'bg-green-500/20 text-green-300 ring-1 ring-green-500/40', gray:'bg-white/10 text-white/70 ring-1 ring-white/10', red:'bg-red-500/20 text-red-300 ring-1 ring-red-500/40' };
+  return <span className={cx("px-2 py-1 rounded-full text-xs font-semibold", m[tone])}>{children}</span>; }
+function ToolChip({name,onClick}){ return <button className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-sm border border-white/10" onClick={onClick}><i className="fa-solid fa-circle-info mr-2"></i>{name}</button>; }
+function FullscreenButton({targetRef}){ const go=async()=>{const el=targetRef.current; if(!el) return; if(!document.fullscreenElement) await el.requestFullscreen?.(); else await document.exitFullscreen?.();};
+  return <button onClick={go} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm"><i className="fa-solid fa-maximize mr-2"></i>Fullscreen</button>; }
 
-const BLUE_30=[ "C2 Beacon Hunt with Zeek + SPL","Windows Eventing (Sysmon)","Linux Auditd & Journald","Network Telemetry (NetFlow/PCAP)","DNS Security","Web Proxy & TLS Visibility","Identity: AD/AAD Basics","Detection Engineering 1","Alert Triage & Escalation","ELK/Splunk Essentials","Use Case Development","Hunting with Queries","Password Spray Detection","Persistence (Blue)","Privilege Escalation Detection","Lateral Movement Detection","Data Exfil & DLP Basics","Cloud Logs (AWS/GCP/Azure)","Container/K8s Audit Logs","Endpoint Telemetry (EDR)","Malware Triage Intro","Sandbox/Detonation","IR Runbooks","Purple Team Basics","Post-Incident Reporting","Metrics & MTTR","Automation (SOAR) Intro","Threat Intel & Enrichment","Blue Lab Day","Blue Capstone" ];
+/* ===== Stylish explanation modal (answers) ===== */
+function AnswerModal({open, correct, title, detail, onClose}){
+  if(!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+      <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} className={cx("rounded-2xl p-6 w-full max-w-lg border", correct? "bg-green-600/20 border-green-500/40":"bg-red-600/20 border-red-500/40")}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold">{correct? 'Excellent! ✅' : 'Let’s improve 💡'}</h3>
+          <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
+        </div>
+        <div className="mt-2 font-semibold">{title}</div>
+        <div className="mt-3 text-white/90 whitespace-pre-wrap">{detail}</div>
+        <div className="mt-4 flex justify-end">
+          <button className={cx("px-4 py-2 rounded", correct? "bg-green-400 text-black":"bg-white/10")} onClick={onClose}>OK</button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
-const RED_30=[ "OSINT & Recon","Web Enumeration","Auth Bypass (Concepts)","Input/Serialization Bugs (Concepts)","File Upload & Path Traversal (Concepts)","Business Logic Awareness","Network Scanning & Evasion (Concepts)","Service Enumeration (Concepts)","Password Attacks (Ethical Concepts)","Phishing Pretexting (Ethical Concepts)","Initial Access (Concepts)","Post-Exploitation (Concepts)","Pivoting/Tunneling (Concepts)","Linux Privesc (Concepts)","Windows Privesc (Concepts)","Credential Access (Concepts)","EDR Evasion (Concepts)","C2 Channels (Concepts)","Exfiltration (Concepts)","OPSEC (Concepts)","Reporting & Debriefing","ATT&CK Emulation (Concepts)","Scripting Basics (Safe)","PoCs Safely (Concepts)","Rules of Engagement & Law","Lab Hygiene & Safety","Purple Collaboration","Kill Chain Mapping","Campaign Planning","Red Capstone" ];
+/* ===== Terminal (robust local sim) ===== */
+function Terminal({script=[]}){
+  const [lines,setLines]=useState(["user@academy:~$"]);
+  const [v,setV]=useState(""); const [i,setI]=useState(0);
+  const boxRef=useRef(null);
+  const append=(arr)=>{ setLines(p=>{ const n=[...p, ...arr]; return n.slice(-400); }); };
+  useEffect(()=>{ boxRef.current && (boxRef.current.scrollTop = boxRef.current.scrollHeight); },[lines]);
 
-const DEVSECOPS_30=[ "Break & Fix CI/CD Pipeline","Git Security & Secrets","SAST Fundamentals","SCA & SBOM","DAST & API Testing","Container Security Basics","Dockerfile Hardening","Image Scanning (Trivy)","Kubernetes Security Basics","K8s RBAC/Network Policies","IaC Security (Terraform)","Policy as Code (OPA)","Secrets Mgmt (Vault/KMS)","CI Pipeline Threats","Secure GitHub Actions/Jenkins","Supply Chain Risks (Sigstore)","Artifact Signing","Runtime Security (Falco)","Threat Modeling in Dev","Secure Release Gates","Blue/Green & Canary Safety","Cloud Posture Mgmt","Monitoring & SLOs","Chaos & GameDays (Safe)","Compliance as Code","IR in DevOps","Rollbacks & Hotfix Safety","Cost/Risk Trade-offs","DevSecOps at Scale","DevSecOps Capstone" ];
-
-const AISEC_30=[ "Prompt Injection Defenses in an LLM App","AI Security Landscape","Threat Modeling ML Systems","Data Poisoning (Concepts)","Model Theft (Concepts)","Adversarial Examples (Concepts)","Membership Inference (Concepts)","Robustness Basics","AI Red Teaming (Concepts)","Safety Guardrails (Concepts)","Secure MLOps Pipelines","Dataset Provenance","Model Signing/Registry","Runtime Monitoring (AI)","PII & Privacy in ML","Synthetic Data Caveats","LLM App Risks","Vector DB Risks","Responsible Disclosure","Adversarial Training (Concepts)","Feature Squeezing (Concepts)","Detect Adversarials (Concepts)","Human-in-the-Loop","AI Supply Chain Risks","API Security for AI Apps","GPU/Container Hardening","Policy & Ethics Brief","AI Incident Response","AI Risk Metrics","AI Capstone" ];
-
-const NETWORK_30=[ "Packet Capture Triage (Wireshark + Zeek)","TCP/IP Deep Dive","Subnetting & Routing Basics","Switching & VLANs","DNS In Depth","HTTP/S & Web Stack","TLS Handshake & PKI","VPN & Zero Trust Concepts","Firewalls & ACLs","Proxy & Secure Web Gateways","IDS/IPS Concepts","NetFlow/IPFIX","Network Access Control","Wireless Security (WPA2/3)","Load Balancers & WAF Concepts","Reverse Proxies","CDN & Edge Security (Concepts)","DoS/DDoS Concepts & Mitigation","BGP Basics & Security (Concepts)","Network Hardening Checklist","Logging Network Devices","Packet Crafting (Concepts)","Network Troubleshooting Toolkit","Latency & Throughput","QoS & Prioritization","Cloud Networking Basics","Hybrid Networks","SASE Overview","Network Lab Day","Network Capstone" ];
-
-const SQL_30=[ "SQL Security Fundamentals","Relational Modeling & Keys","SQL Basics SELECT/WHERE/JOIN","Indexes & Performance Basics","Transactions & Isolation Levels","Privileges/Roles/Least Privilege","Parameterization & ORM Safety","Stored Procedures Safeguards","Input Validation Strategy","SQL Injection Defense (Parametrized)","Error Handling & Info Leakage","Audit Logging & Triggers (Concepts)","Backup/Restore Strategy","Encryption at Rest & in Transit","Row-Level Security (Concepts)","Views & Access Patterns","Database Monitoring (Concepts)","Slow Query Tuning (Concepts)","Deadlocks & Lock Contention","Partitioning Basics (Concepts)","Replication/HA Basics (Concepts)","Disaster Recovery Planning","Cloud DB Posture Mgmt (Concepts)","Secrets Management for DB","Secure Migrations (Concepts)","App-DB Connectivity (TLS)","Connection Pooling (Concepts)","DB Change Controls","DB Lab Day","SQL Capstone" ];
-
-/* ===== Default & authored module builders ===== */
-function defaultModule(id, title, tools=[], objective="Learn & practice core skills") {
-  const chipTools = tools.slice(0,3);
-  return {
-    id, title,
-    story:[
-      {type:'text', content:`Scenario: ${title}. Learn how pros approach this problem in the field.`},
-      {type:'chips', items: chipTools.length? chipTools: ['Wireshark','Nmap']},
-      {type:'info', content:`Objective: ${objective}`},
-      {type:'code', lang:'bash', content:`# Try these in the lab terminal (simulated)
-whoami
-netstat -tuln
-# Add commands relevant to: ${title}`}
-    ],
-    practice:[
-      {type:'task', title:'Concept Check', mode:'mc',
-       options:[
-         {t:`${title}: choose the MOST relevant first step`, correct:true, why:'Establish context/ground truth first.'},
-         {t:'Change production configs immediately', correct:false, why:'Too risky without evidence.'},
-         {t:'Ignore and wait', correct:false, why:'Delays compound impact.'},
-       ]},
-      {type:'short', title:`What risk matters most in: ${title}? How mitigate?`,
-        rubric:{minScore:.6, keywords:[{group:['risk','impact'],weight:.3},{group:['mitigate','prevent','defend'],weight:.4},{group:['monitor','logs','verify'],weight:.3}],
-        modelAnswer:`Identify primary risk, how to mitigate, and how to verify with telemetry.`}
-      }
-    ],
-    quiz:[
-      {q:`What is the FIRST thing you do in ${title}?`,
-       answers:[
-         {t:'Gather context, validate signals', correct:true, why:'Correct. Evidence-first approach.'},
-         {t:'Set public comms immediately', correct:false, why:'Premature without facts.'},
-         {t:'Disable random services', correct:false, why:'Unjustified change.'},
-         {t:'Dismiss alert', correct:false, why:'Never ignore without validation.'}
-       ]}
-    ]
+  const run=(cmd)=>{
+    const c=(cmd||'').trim();
+    if(!c) return;
+    const out = [];
+    if(/^nmap\b/.test(c)) out.push("Starting Nmap (sim) ...\n22/tcp open ssh\n80/tcp open http\n443/tcp open https");
+    else if(/^whoami$/.test(c)) out.push("analyst");
+    else if(/^netstat/.test(c)) out.push("tcp 0 0 0.0.0.0:22 LISTEN\n0.0.0.0:80 LISTEN");
+    else if(/^help$/.test(c)) out.push("Try: whoami | netstat -tuln | nmap -sS 127.0.0.1");
+    else out.push("Command not available in simulation. Try 'help'.");
+    append([`user@academy:~$ ${c}`, ...out]); setV("");
   };
+  const runScript=async()=>{ for(let j=i;j<script.length;j++){ append([`user@academy:~$ ${script[j].cmd}`, script[j].out]); setI(j+1); await wait(400);} };
+
+  return (
+    <div className="rounded-2xl overflow-hidden border border-white/10">
+      <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
+        <div className="text-xs text-white/60">CyberSec Lab (Simulation)</div>
+        <div className="space-x-2">
+          <button onClick={()=>{setLines(["user@academy:~$"]); setI(0);}} className="text-xs px-2 py-1 bg-white/10 rounded">Reset</button>
+          <button onClick={runScript} className="text-xs px-2 py-1 bg-brand text-black rounded">Run Lesson Sequence</button>
+        </div>
+      </div>
+      <pre ref={boxRef} className="bg-black/60 p-4 min-h-[240px] font-mono text-sm whitespace-pre-wrap overflow-y-auto">{lines.join('\n')}</pre>
+      <div className="bg-black/70 p-2 flex gap-2">
+        <input className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" value={v}
+          onChange={e=>setV(e.target.value)} onKeyDown={e=>e.key==='Enter'&&run(v)} placeholder="Type: whoami | netstat -tuln | nmap -sS 127.0.0.1 | help"/>
+        <button onClick={()=>run(v)} className="px-4 py-2 rounded bg-white/10 hover:bg-white/20">Run</button>
+      </div>
+    </div>
+  );
 }
 
-/* ===== Deep authored modules ===== */
-const AUTHORED = {
-  blue: {
-    "C2 Beacon Hunt with Zeek + SPL": {
-      id:'blu-c2', title:'C2 Beacon Hunt with Zeek + SPL',
-      story:[
-        {type:'text', content:"Your SOC sees periodic short outbound connections to an uncommon ASN. Hypothesis: beaconing."},
-        {type:'chips', items:['Zeek','Splunk']},
-        {type:'info', content:"Goal: Confirm/deny beaconing. Use Zeek conn.log to extract periodicity; pivot to DNS/HTTP logs; verify with SIEM (SPL)."},
-        {type:'code', lang:'bash', content:`# (Conceptual) Steps:
-# 1) Extract conn.log fields: uid,ts,orig_h,resp_h,resp_p,duration,proto
-# 2) Group by orig_h->resp_h, compute inter-arrival times
-# 3) Flag low-entropy periodic patterns (~30-60s)
-# 4) Pivot to dns.log/http.log for domains/URIs`},
-      ],
-      practice:[
-        {type:'task', title:'Which metric signals beaconing most?', mode:'mc',
-         options:[
-           {t:'Consistent inter-arrival time (periodicity)', correct:true, why:'Periodic callbacks are a hallmark.'},
-           {t:'Single large transfer', correct:false, why:'Could be normal download.'},
-           {t:'High TLS versions', correct:false, why:'Not indicative alone.'}
-         ]},
-        {type:'short', title:'Name two logs to pivot after conn.log and why.',
-         rubric:{minScore:.6, keywords:[{group:['dns'],weight:.4},{group:['http','uri','user-agent'],weight:.3},{group:['sni','ssl'],weight:.3}],
-         modelAnswer:"DNS for domain patterns; HTTP(S) metadata for URIs/UA/SNI to confirm beacon profile."}}
-      ],
-      quiz:[
-        {q:'In SPL, which approach helps find periodic callbacks?',
-         answers:[
-           {t:'bin _time to 30s and stats count by dest, look for uniform cadence', correct:true, why:'Time bucketing reveals cadence.'},
-           {t:'Sort by bytes only', correct:false, why:'Volume alone is weak for beacons.'},
-           {t:'Filter to HTTP 200s only', correct:false, why:'Misses non-HTTP beacons.'}
-         ]}
-      ]
-    }
-  },
-  devsecops: {
-    "Break & Fix CI/CD Pipeline": {
-      id:'dso-bf', title:'Break & Fix CI/CD Pipeline',
-      story:[
-        {type:'text', content:"A pipeline leaks credentials in build logs and pushes unscanned images to prod."},
-        {type:'chips', items:['Snyk','Trivy']},
-        {type:'info', content:"Goal: identify leak points, add secret scanning, add image/IaC scans, enforce signed/artifact gates before deploy."},
-        {type:'code', lang:'bash', content:`# Conceptual secure fixes
-# - Secrets in vault/KMS + short-lived tokens
-# - Pre-merge SAST/SCA + fail on high severity
-# - trivy image <yourimage> && gate on severity
-# - sign artifacts (cosign) and verify at deploy`},
-      ],
-      practice:[
-        {type:'task', title:'Best FIRST fix?', mode:'mc',
-         options:[
-           {t:'Remove secrets from logs and move to a secrets manager', correct:true, why:'Stop leakage at source first.'},
-           {t:'Change the logo color', correct:false, why:'Cosmetic.'},
-           {t:'Skip tests for speed', correct:false, why:'Increases risk.'}
-         ]},
-        {type:'short', title:'Name two gates before deploy.',
-         rubric:{minScore:.6, keywords:[{group:['sast','sca','scan'],weight:.4},{group:['trivy','image','container'],weight:.3},{group:['sign','cosign','sigstore'],weight:.3}],
-         modelAnswer:"Static/dependency scans pass; container image scanned clean; artifacts are signed and verified."}}
-      ],
-      quiz:[
-        {q:'Which is the most robust secret handling practice?',
-         answers:[
-           {t:'Short-lived cloud tokens from a vault, never in env vars or logs', correct:true, why:'Principled and auditable.'},
-           {t:'Hardcode low-priv creds', correct:false, why:'Still a leak.'},
-           {t:'Encrypt secrets then commit', correct:false, why:'Secrets in git are risky even encrypted.'}
-         ]}
-      ]
-    }
-  },
-  asec: {
-    "Prompt Injection Defenses in an LLM App": {
-      id:'ais-pi', title:'Prompt Injection Defenses in an LLM App',
-      story:[
-        {type:'text', content:"Your LLM app reads untrusted text and tools. Attackers try to override system prompts."},
-        {type:'chips', items:['IBM ART']},
-        {type:'info', content:"Goal: harden against prompt injection: strict tool schema, content filters, allow/deny lists, and context isolation."},
-        {type:'code', lang:'bash', content:`# Conceptual controls
-# - Separate system & user contexts
-# - Validate tool args strictly
-# - Escape/neutralize 'instruction-like' strings in data
-# - Human-in-the-loop for high-risk actions`},
-      ],
-      practice:[
-        {type:'task', title:'Which helps most against prompt injection?', mode:'mc',
-         options:[
-           {t:'Schema-validated tool calls + least privilege', correct:true, why:'Reduces tool abuse.'},
-           {t:'Longer prompts only', correct:false, why:'Length ≠ safety.'},
-           {t:'Randomize temperature', correct:false, why:'Doesn’t mitigate injection.'}
-         ]},
-        {type:'short', title:'Describe one isolation pattern.',
-         rubric:{minScore:.6, keywords:[{group:['isolate','sandbox','separate'],weight:.4},{group:['context','system','user'],weight:.3},{group:['tool','validate'],weight:.3}],
-         modelAnswer:"Run tools in a sandbox and keep system prompt separate from user content; validate any tool args strictly."}}
-      ],
-      quiz:[
-        {q:'Best way to reduce tool misuse via prompts?',
-         answers:[
-           {t:'Strict JSON schema validation and allow-listed tools', correct:true, why:'Prevents arbitrary actions.'},
-           {t:'Accept any tool args', correct:false, why:'Unsafe.'},
-           {t:'Ignore errors', correct:false, why:'Dangerous.'}
-         ]}
-      ]
-    }
-  },
-  network: {
-    "Packet Capture Triage (Wireshark + Zeek)": {
-      id:'net-pcap', title:'Packet Capture Triage (Wireshark + Zeek)',
-      story:[
-        {type:'text', content:"You received a 5-minute PCAP during an outage window. Triage quickly for obvious issues."},
-        {type:'chips', items:['Wireshark','Zeek']},
-        {type:'info', content:"Goal: identify talkers, protocols, errors quickly; summarize flows; pivot to logs if needed."},
-        {type:'code', lang:'bash', content:`# Conceptual:
-# - Wireshark: Conversations, Protocol Hierarchy
-# - Zeek: zeek -r capture.pcap && review conn.log, dns.log
-# - Summarize top talkers, ports, errors`}
-      ],
-      practice:[
-        {type:'task', title:'Fastest first panel in Wireshark?', mode:'mc',
-         options:[
-           {t:'Statistics → Protocol Hierarchy', correct:true, why:'Immediate protocol mix view.'},
-           {t:'Edit → Preferences', correct:false, why:'Not triage.'},
-           {t:'Help → About', correct:false, why:'Not useful.'}
-         ]},
-        {type:'short', title:'Two Zeek logs to open first & why.',
-         rubric:{minScore:.6, keywords:[{group:['conn.log'],weight:.4},{group:['dns.log','http.log'],weight:.3},{group:['summary','flows'],weight:.3}],
-         modelAnswer:"conn.log for flow summary; dns.log/http.log for names/URIs to explain traffic."}}
-      ],
-      quiz:[
-        {q:'Which metric BEST spots scanning quickly?',
-         answers:[
-           {t:'Many dest ports from same src in short time', correct:true, why:'Classic scan signature.'},
-           {t:'TLS version numbers', correct:false, why:'Not definitive.'},
-           {t:'Single long connection', correct:false, why:'Likely normal transfer.'}
-         ]}
-      ]
-    }
-  },
-  sql: {
-    "SQL Injection Defense (Parametrized)": {
-      id:'sql-para', title:'SQL Injection Defense (Parametrized)',
-      story:[
-        {type:'text', content:"A login endpoint shows odd error spikes. You suspect input is reaching SQL unsafely."},
-        {type:'chips', items:['ELK Stack']},
-        {type:'info', content:"Goal: replace string-built queries with parameterized statements/ORM binds; verify via logs/tests. (We focus on defense, not exploitation.)"},
-        {type:'code', lang:'bash', content:`# Defense examples (conceptual)
-# Python psycopg2: cur.execute("SELECT * FROM users WHERE email=%s", (email,))
-# Node pg: client.query("... WHERE email=$1", [email])
-# ORM: Model.findOne({ where: { email } })`}
-      ],
-      practice:[
-        {type:'task', title:'What change most reduces risk?', mode:'mc',
-         options:[
-           {t:'Use parameterized queries/ORM bindings everywhere', correct:true, why:'Stops injection vectors.'},
-           {t:'Concatenate strings but escape quotes', correct:false, why:'Error-prone.'},
-           {t:'Hide SQL errors only', correct:false, why:'Defense-in-depth needs parameterization.'}
-         ]},
-        {type:'short', title:'Two places to add guardrails.',
-         rubric:{minScore:.6, keywords:[{group:['parameter','bind'],weight:.4},{group:['validation','allowlist'],weight:.3},{group:['least','privilege','role'],weight:.3}],
-         modelAnswer:"Parameterize queries and enforce input validation/allow-lists; ensure DB roles follow least privilege."}}
-      ],
-      quiz:[
-        {q:'Which statement about parameterization is correct?',
-         answers:[
-           {t:'It prevents untrusted input from changing query structure', correct:true, why:'That’s the core safety property.'},
-           {t:'It only works on SELECT', correct:false, why:'Works for INSERT/UPDATE/DELETE too.'},
-           {t:'It makes queries slower so avoid', correct:false, why:'Performance impact is negligible vs safety.'}
-         ]}
-      ]
-    }
-  }
-};
+/* ===== Improved practice widgets ===== */
+function MCQuestion({moduleId,qIndex,question,options,onResult}){
+  const [selected,setSelected]=useState(null);
+  const [locked,setLocked]=useState(false);
+  const [modal,setModal]=useState({open:false,correct:false,title:'',detail:''});
 
-/* ===== Build tracks (authored where present) ===== */
-function buildTrack(name, titles){
-  const out = [];
-  for (let i=0;i<titles.length;i++){
-    const t=titles[i];
-    const authored = AUTHORED[name]?.[t];
-    out.push(authored ? authored : defaultModule(`${name}-${i+1}`, t, Object.keys(TOOL_DB), `Practical objectives for: ${t}`));
-  }
-  return out;
+  const submit=()=>{
+    if(selected==null) return;
+    const choice=options[selected];
+    const ok=!!choice.correct;
+    const detail = (ok? `Why it’s right:\n${choice.explain || choice.why || 'This is the most defensible approach.'}`
+                        : `Why that’s not best:\n${choice.explain || choice.why || 'There are safer, more reliable options.'}\n\nBest answer: ${(options.find(o=>o.correct)||{}).t}`);
+    setLocked(true);
+    setModal({open:true,correct:ok,title:question,detail});
+    onResult(ok, detail, (options.find(o=>o.correct)||{}).t);
+  };
+
+  return (
+    <div>
+      <div className="space-y-2">
+        {options.map((o,i)=>{
+          const isSel = selected===i;
+          const isCorrect = locked && o.correct;
+          const isWrongSel = locked && isSel && !o.correct;
+          return (
+            <button
+              key={i}
+              onClick={()=>!locked && setSelected(i)}
+              className={cx(
+                "w-full text-left px-4 py-3 rounded border transition",
+                !locked && isSel && "bg-white/15 border-white/30",
+                !locked && !isSel && "bg-white/5 hover:bg-white/10 border-white/10",
+                isCorrect && "bg-green-500/15 border-green-500/40",
+                isWrongSel && "bg-red-500/15 border-red-500/40"
+              )}
+            >
+              {o.t}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex gap-2 pt-3">
+        {!locked && <button className="px-4 py-2 bg-brand text-black rounded font-semibold disabled:opacity-50" disabled={selected==null} onClick={submit}>Submit</button>}
+        {locked && <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setLocked(false); setSelected(null); }}>Try Again</button>}
+      </div>
+      <AnswerModal open={modal.open} correct={modal.correct} title={modal.title} detail={modal.detail} onClose={()=>setModal({...modal,open:false})}/>
+    </div>
+  );
 }
 
-const TRACKS = {
-  foundations: buildTrack('foundations', FOUNDATIONS_30),
-  blue:        buildTrack('blue', BLUE_30),
-  red:         buildTrack('red', RED_30),
-  devsecops:   buildTrack('devsecops', DEVSECOPS_30),
-  asec:        buildTrack('asec', AISEC_30),
-  network:     buildTrack('network', NETWORK_30),
-  sql:         buildTrack('sql', SQL_30),
-};
+function ShortAnswer({prompt,rubric,onResult}){
+  const [v,setV]=useState(''); const [fb,setFb]=useState(null); const [ok,setOk]=useState(false);
+  const grade=(answer, rub)=>{ const a=(answer||'').toLowerCase(); let score=0; const notes=[];
+    for(const kw of rub.keywords){ const hit=kw.group.some(g=>a.includes(g.toLowerCase()));
+      if(hit){ score+=kw.weight; notes.push(`✓ Mentioned ${kw.group[0]}`);} else { notes.push(`• Include: ${kw.group.slice(0,2).join(' / ')}`);} }
+    score=Math.max(0,Math.min(1,score)); const pass=score>=(rub.minScore??.7);
+    return { ok:pass, feedback: pass? "Excellent — you hit the key points." : `Not quite yet.\n\nModel guidance:\n${rub.modelAnswer}\n\nTips:\n- ${notes.join('\n- ')}` };
+  };
+  return (
+    <div>
+      <div className="text-sm opacity-80 mb-2">{prompt}</div>
+      <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded p-3" value={v} onChange={e=>setV(e.target.value)} placeholder="Type your answer…"></textarea>
+      <div className="flex gap-2 mt-2">
+        <button className="px-4 py-2 bg-brand text-black rounded font-semibold" onClick={()=>{ const res=grade(v,rubric); setFb(res.feedback); setOk(res.ok); onResult(res.ok,res.feedback); }}>Check</button>
+        <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setV(''); setFb(null); setOk(false); }}>Reset</button>
+      </div>
+      {fb && <div className={cx("p-3 mt-2 rounded border", ok? "bg-green-500/10 border-green-500/30":"bg-red-500/10 border-red-500/30")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
+    </div>
+  );
+}
 
-/* ===== Item analysis (local or Firestore) ===== */
+/* ===== Discussions & stats (local/Firebase) ===== */
 async function recordItemStat(moduleId, qIdx, pickedIdx, correct){
   if(CONFIG.USE_FIREBASE && appState.db){
     const ref = appState.db.collection('itemstats').doc(moduleId);
-    const snap = await ref.get();
-    const data = snap.exists ? snap.data() : {};
+    const snap = await ref.get(); const data = snap.exists ? snap.data() : {};
     const q = data[qIdx] || { total:0, correct:0, options:{} };
     q.total += 1; if (correct) q.correct += 1;
     q.options[pickedIdx] = (q.options[pickedIdx]||0) + 1;
@@ -442,14 +312,10 @@ async function loadItemStats(moduleId){
     const key=`itemstats_${moduleId}`; return JSON.parse(localStorage.getItem(key)||'{}');
   }
 }
-
-/* ===== Community per module (threads) ===== */
 async function loadThread(moduleId){
   if(CONFIG.USE_FIREBASE && appState.db){
     const ref = appState.db.collection('threads').doc(moduleId).collection('messages').orderBy('ts','asc');
-    return new Promise(resolve=>{
-      ref.onSnapshot(s=>resolve(s.docs.map(d=>d.data())));
-    });
+    return new Promise(resolve=>{ ref.onSnapshot(s=>resolve(s.docs.map(d=>d.data()))); });
   } else {
     const key=`thread_${moduleId}`; return JSON.parse(localStorage.getItem(key)||'[]');
   }
@@ -463,108 +329,6 @@ async function postThread(moduleId, user, text){
     localStorage.setItem(key, JSON.stringify(cur));
   }
 }
-
-/* ===== UI Bits ===== */
-function Badge({children, tone='brand'}){ const m={ brand:'bg-brand/20 text-brand ring-1 ring-brand/40', green:'bg-green-500/20 text-green-300 ring-1 ring-green-500/40', gray:'bg-white/10 text-white/70 ring-1 ring-white/10' };
-  return <span className={cx("px-2 py-1 rounded-full text-xs font-semibold", m[tone])}>{children}</span>; }
-function ToolChip({name,onClick}){ return <button className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-sm border border-white/10" onClick={onClick}><i className="fa-solid fa-circle-info mr-2"></i>{name}</button>; }
-function FullscreenButton({targetRef}){ const go=async()=>{const el=targetRef.current; if(!el) return; if(!document.fullscreenElement) await el.requestFullscreen?.(); else await document.exitFullscreen?.();};
-  return <button onClick={go} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm"><i className="fa-solid fa-maximize mr-2"></i>Fullscreen</button>; }
-
-function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool];
-  return <div className="fixed inset-0 z-50 grid place-items-center p-4">
-    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
-    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
-      <div className="flex items-center justify-between mb-4"><h3 className="text-xl font-semibold">{tool}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
-      <p className="text-white/80 mb-3">{t.what}</p>
-      <ol className="list-decimal list-inside space-y-2 mb-4">{t.steps.map((s,i)=><li key={i}>{s}</li>)}</ol>
-      <a className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg" href={t.link} target="_blank" rel="noreferrer"><i className="fa-solid fa-up-right-from-square"></i> Official Site</a>
-    </motion.div>
-  </div>;
-}
-
-/* ===== Terminal (simulated lab) ===== */
-function Terminal({script=[]}){
-  const [lines,setLines]=useState(["user@academy:~$"]); const [v,setV]=useState(""); const [i,setI]=useState(0);
-  const run=(cmd)=>{ const out=[]; const c=cmd.trim(); if(!c) return;
-    if(c.startsWith('nmap')) out.push("Starting Nmap...\n22/tcp open ssh\n80/tcp open http\n443/tcp open https");
-    else if(c==='whoami') out.push("analyst");
-    else if(c.startsWith('netstat')) out.push("tcp 0 0 0.0.0.0:22 LISTEN\n0.0.0.0:80 LISTEN");
-    else if(c==='help') out.push("Try: whoami, netstat -tuln, nmap -sS 127.0.0.1");
-    else out.push("Not recognized in simulation. Try 'help'.");
-    setLines(p=>[...p,`user@academy:~$ ${escapeHtml(cmd)}`,...out]); setV(""); };
-  const runScript=async()=>{ for(let j=i;j<script.length;j++){ setLines(p=>[...p,`user@academy:~$ ${escapeHtml(script[j].cmd)}`,script[j].out]); setI(j+1); await wait(400);} };
-  return <div className="rounded-2xl overflow-hidden border border-white/10">
-    <div className="bg-black/70 px-4 py-2 flex items-center justify-between"><div className="text-xs text-white/60">CyberSec Lab</div>
-      <div className="space-x-2"><button onClick={()=>{setLines(["user@academy:~$"]); setI(0);}} className="text-xs px-2 py-1 bg-white/10 rounded">Reset</button>
-        <button onClick={runScript} className="text-xs px-2 py-1 bg-brand text-black rounded">Run Lesson Sequence</button></div></div>
-    <div className="bg-black/60 p-4 min-h-[220px] font-mono text-sm whitespace-pre-wrap">{lines.join('\n')}</div>
-    <div className="bg-black/70 p-2 flex gap-2"><input className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" value={v}
-      onChange={e=>setV(e.target.value)} onKeyDown={e=>e.key==='Enter'&&run(v)} placeholder="Type: whoami | nmap -sS 127.0.0.1 | help"/>
-      <button onClick={()=>run(v)} className="px-4 py-2 rounded bg-white/10 hover:bg-white/20">Run</button></div>
-  </div>;
-}
-
-/* ===== Practice widgets ===== */
-function DragMatch({pairs,onComplete}){
-  const [ans,setAns]=useState({}); const L=pairs.map(([l])=>l);
-  const R=useMemo(()=>pairs.map(([_,r])=>r).sort(()=>Math.random()-0.5),[pairs]);
-  const ready=L.every(l=>ans[l]);
-  return <div>
-    <div className="grid md:grid-cols-2 gap-4">
-      <div className="space-y-2">{L.map(l=><div key={l} className="p-3 rounded bg-white/5 border border-white/10">
-        <div className="text-sm mb-2 font-semibold">{l}</div>
-        <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-2" defaultValue=""
-          onChange={e=>setAns(p=>({...p,[l]:e.target.value}))}>
-          <option value="" disabled>Match description…</option>{R.map(r=><option key={r} value={r}>{r}</option>)}
-        </select></div>)}</div>
-      <div className="p-3 rounded bg-white/5 border border-white/10"><div className="text-sm opacity-70 mb-2">Descriptions</div>
-        <ul className="list-disc list-inside space-y-2">{R.map(r=><li key={r}>{r}</li>)}</ul></div>
-    </div>
-    <div className="mt-3 flex gap-2">
-      <button disabled={!ready} className="px-4 py-2 bg-brand text-black rounded disabled:opacity-50"
-        onClick={()=>{ const ok=pairs.every(([l,r])=>ans[l]===r);
-          onComplete(ok, ok? "Excellent — all correct.":"Some mismatches. Re-check and try again.");
-        }}>Check</button>
-      <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>setAns({})}>Reset</button>
-    </div>
-  </div>;
-}
-function MCQuestion({moduleId,qIndex,options,onResult}){
-  const [c,setC]=useState(null); const [locked,setLocked]=useState(false);
-  return <div className="space-y-2">
-    {options.map((o,i)=><button key={i} onClick={()=>!locked&&setC(i)}
-      className={cx("w-full text-left px-4 py-3 rounded border", c===i? "bg-white/15 border-white/20":"bg-white/5 hover:bg-white/10 border-white/10")}>{o.t}</button>)}
-    <div className="flex gap-2 pt-2">
-      {!locked && <button className="px-4 py-2 bg-brand text-black rounded" onClick={async()=>{
-        if(c==null) return; setLocked(true); const ok=options[c].correct;
-        await recordItemStat(moduleId, qIndex, c, ok);
-        onResult(ok, options[c].why, options.find(x=>x.correct)?.t);
-      }}>Submit</button>}
-      {locked && <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{setC(null); setLocked(false);}}>Try Again</button>}
-    </div>
-  </div>;
-}
-function ShortAnswer({rubric,onResult}){
-  const [v,setV]=useState(""); const [fb,setFb]=useState(null); const [ok,setOk]=useState(false);
-  const grade=(answer, rub)=>{ // lightweight grader
-    const a=(answer||'').toLowerCase(); let score=0; const notes=[];
-    for(const kw of rub.keywords){ const hit=kw.group.some(g=>a.includes(g.toLowerCase()));
-      if(hit){ score+=kw.weight; notes.push(`✓ Mentioned ${kw.group[0]}`);} else { notes.push(`• Include: ${kw.group.slice(0,2).join(' / ')}`);} }
-    score=Math.max(0,Math.min(1,score)); const pass=score>=(rub.minScore??.7);
-    return { ok:pass, feedback: pass? "Great! You hit the key ideas." : `Not quite. Model guidance:\n${rub.modelAnswer}\n\nTips:\n- ${notes.join('\n- ')}` };
-  };
-  return <div className="space-y-2">
-    <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded p-3" value={v} onChange={e=>setV(e.target.value)} placeholder="Type your answer…"></textarea>
-    <div className="flex gap-2">
-      <button className="px-4 py-2 bg-brand text-black rounded" onClick={()=>{ const res=grade(v,rubric); setFb(res.feedback); setOk(res.ok); onResult(res.ok,res.feedback); }}>Check</button>
-      <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{setV(""); setFb(null); setOk(false);}}>Try Again</button>
-    </div>
-    {fb && <div className={cx("p-3 rounded border", ok? "bg-green-500/10 border-green-500/30":"bg-red-500/10 border-red-500/30")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
-  </div>;
-}
-
-/* ===== Module Discussion modal ===== */
 function ModuleDiscussion({moduleId,user,onClose}){
   const [msgs,setMsgs]=useState([]); const [text,setText]=useState('');
   useEffect(()=>{ let unsub; (async()=>{
@@ -576,20 +340,21 @@ function ModuleDiscussion({moduleId,user,onClose}){
       const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]'));
     }
   })(); return ()=>unsub&&unsub(); },[moduleId]);
-  const send=async()=>{ if(!text.trim()) return; await postThread(moduleId, user, text); setText(''); if(!CONFIG.USE_FIREBASE){ const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]')); } };
+  const send=async()=>{ if(!text.trim()) return; await postThread(moduleId, user, text);
+    if(!CONFIG.USE_FIREBASE){ const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]')); }
+    setText('');
+  };
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
     <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
     <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-2xl border border-white/10">
       <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">Discussion — {moduleId}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <div className="h-72 overflow-y-auto space-y-2 mb-3">{msgs.map((m,i)=><div key={i} className="text-sm"><span className="text-brand">{m.user}:</span> {m.text}</div>)}</div>
-      <div className="flex gap-2"><input value={text} onChange={e=>setText(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" placeholder="Share insights, ask questions…"/>
+      <div className="flex gap-2"><input value={text} onChange={e=>setText(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" placeholder="Ask or share…"/>
         <button className="px-4 py-2 bg-brand text-black rounded" onClick={send}>Send</button></div>
-      {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 mt-2">Demo thread (local only). Enable Firebase for realtime multi-user.</div>}
+      {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 mt-2">Demo thread (local). Enable Firebase for realtime.</div>}
     </motion.div>
   </div>;
 }
-
-/* ===== Item Analysis modal ===== */
 function ItemAnalysis({moduleId,onClose}){
   const [stats,setStats]=useState({});
   useEffect(()=>{ (async()=> setStats(await loadItemStats(moduleId)))(); },[moduleId]);
@@ -602,7 +367,7 @@ function ItemAnalysis({moduleId,onClose}){
         {Object.entries(stats).map(([qIdx, s])=>{
           const p = s.total? (s.correct/s.total*100).toFixed(0) : 0;
           return <div key={qIdx} className="p-3 rounded bg-white/5 border border-white/10">
-            <div className="text-sm font-semibold">Q{Number(qIdx)+1} — Difficulty (p-value): {p}% correct</div>
+            <div className="text-sm font-semibold">Q{Number(qIdx)+1} — Difficulty: {p}% correct</div>
             <div className="text-xs opacity-80 mt-1">Responses: {s.total}</div>
             <div className="mt-2 text-sm">Option picks: {Object.entries(s.options||{}).map(([opt, c])=>`[${opt}] ${c}`).join('  ')}</div>
           </div>;
@@ -612,22 +377,29 @@ function ItemAnalysis({moduleId,onClose}){
   </div>;
 }
 
-/* ===== Lesson Module (full-screen) ===== */
+/* ===== Story blocks (rich, real-life) ===== */
 function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}catch{}},[]);
-  if(block.type==='text') return <p className="text-white/85">{block.content}</p>;
+  if(block.type==='text') return <p className="text-white/85 leading-relaxed">{block.content}</p>;
+  if(block.type==='callout') return <div className={cx("p-4 rounded border", block.tone==='warn'?"bg-yellow-500/10 border-yellow-500/30":"bg-white/5 border-white/10")}>{block.content}</div>;
+  if(block.type==='timeline') return <ol className="border-l border-white/10 pl-4 space-y-3">{block.items.map((it,i)=><li key={i}><div className="text-brand font-semibold">{it.t}</div><div className="text-white/80">{it.d}</div></li>)}</ol>;
+  if(block.type==='diagram') return <div className="code-block border border-white/10"><pre><code>{block.content}</code></pre></div>;
   if(block.type==='info') return <div className="p-4 rounded bg-white/5 border border-white/10">{block.content}</div>;
   if(block.type==='code') return <div className="code-block border border-white/10"><pre><code className={block.lang}>{block.content}</code></pre></div>;
   if(block.type==='chips') return <div className="flex flex-wrap gap-2">{block.items.map(x=><ToolChip key={x} name={x} onClick={()=>onTool(x)}/>)}</div>;
+  if(block.type==='checklist') return <ul className="list-disc list-inside space-y-1">{block.items.map((x,i)=><li key={i}>{x}</li>)}</ul>;
   return null;
 }
+
+/* ===== Lesson Module (fullscreen) with richer story ===== */
 function LessonModule({module,user,onClose,onProgress}){
-  const [tool,setTool]=useState(null); const [step,setStep]=useState(0); const [showDiscuss,setShowDiscuss]=useState(false); const [showStats,setShowStats]=useState(false);
+  const [tool,setTool]=useState(null); const [step,setStep]=useState(0);
+  const [showDiscuss,setShowDiscuss]=useState(false); const [showStats,setShowStats]=useState(false);
   const ref=useRef(null); useEffect(()=>{try{hljs?.highlightAll()}catch{}},[step]);
 
   const giveXP=async(p=10)=>{ await onProgress({xpDelta:p}); };
 
   return <div ref={ref} className="fixed inset-0 z-40 flex">
-    <div className="relative flex-1 p-4 md:p-8 bg-brand-dark bg-grid dot">
+    <div className="relative flex-1 p-4 md:p-8 bg-brand-dark bg-grid dot overflow-y-auto">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl md:text-3xl font-bold">{module.title}</h2>
@@ -650,10 +422,10 @@ function LessonModule({module,user,onClose,onProgress}){
           <div className="mt-3 space-y-6">
             {module.practice.map((p,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2"><h4 className="font-semibold">{p.title}</h4>
-                <Badge tone="gray">{p.mode==='short'?'Short Answer':p.mode==='mc'?'Multiple Choice':'Drag & Match'}</Badge></div>
-              {p.mode==='dragmatch' && <DragMatch pairs={p.pairs} onComplete={(ok,msg)=>{ alert(msg); if(ok) giveXP(10); }}/>}
-              {p.mode==='mc' && <MCQuestion moduleId={module.id} qIndex={100+i} options={p.options} onResult={(ok,why,correct)=>{ alert(ok?`Correct! ${why}`:`Not quite.\n\nWhy:\n${why}\n\nCorrect:\n${correct}`); if(ok) giveXP(10);} }/>}
-              {p.mode==='short' && <ShortAnswer rubric={p.rubric} onResult={(ok)=>{ if(ok) giveXP(12); }}/>}
+                <Badge tone="gray">{p.mode==='short'?'Short Answer':p.mode==='mc'?'Multiple Choice':p.mode==='dragmatch'?'Drag & Match':'Task'}</Badge></div>
+              {p.mode==='mc' && <MCQuestion moduleId={module.id} qIndex={100+i} question={p.title} options={p.options} onResult={(ok)=>{ if(ok) giveXP(10); }}/>}
+              {p.mode==='short' && <ShortAnswer prompt={p.prompt} rubric={p.rubric} onResult={(ok)=>{ if(ok) giveXP(12); }}/>}
+              {p.mode==='task' && <div className="text-sm opacity-85">{p.instructions}</div>}
             </div>)}
           </div>
           <div className="mt-6 flex gap-2"><button onClick={()=>setStep(0)} className="px-4 py-2 rounded bg-white/10">Back</button>
@@ -664,9 +436,8 @@ function LessonModule({module,user,onClose,onProgress}){
           <Badge tone="green">Final Quiz</Badge>
           <div className="mt-3 space-y-6">{module.quiz.map((q,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
             <div className="font-semibold mb-3">{q.q}</div>
-            <MCQuestion moduleId={module.id} qIndex={i} options={q.answers} onResult={async(ok,why,correct)=>{
-              await recordItemStat(module.id, i, q.answers.findIndex(a=>a.t===correct), ok);
-              alert(ok?`Correct! ${why}`:`Not quite.\n\nWhy:\n${why}\n\nCorrect:\n${correct}\n\nTry again!`); if(ok) giveXP(15);
+            <MCQuestion moduleId={module.id} qIndex={i} question={q.q} options={q.answers} onResult={async(ok,detail)=>{
+              await recordItemStat(module.id, i, 0, ok); if(ok) giveXP(15);
             }}/>
           </div>)}</div>
           <div className="mt-6 flex gap-2"><button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-white/10">Back</button>
@@ -680,17 +451,661 @@ function LessonModule({module,user,onClose,onProgress}){
   </div>;
 }
 
-/* ===== Course map & role paths ===== */
+/* ===== Tool modal ===== */
+function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool]||TOOL_DB['Wireshark'];
+  return <div className="fixed inset-0 z-50 grid place-items-center p-4">
+    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
+      <div className="flex items-center justify-between mb-4"><h3 className="text-xl font-semibold">{tool}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
+      <p className="text-white/80 mb-3">{t.what}</p>
+      <ol className="list-decimal list-inside space-y-2 mb-4">{t.steps.map((s,i)=><li key={i}>{s}</li>)}</ol>
+      <a className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg" href={t.link} target="_blank" rel="noreferrer"><i className="fa-solid fa-up-right-from-square"></i> Official Site</a>
+    </motion.div>
+  </div>;
+}
+
+/* ===== Course scaffolding ===== */
+
+const FOUNDATIONS_10=[
+  "The Internet Under Attack","Recon & Network Basics","Web App Security 101","Authentication & Authorization",
+  "Intro to Cryptography","Secure Coding (Top 10)","Linux Security Fundamentals","Windows Security Fundamentals",
+  "Cloud Security Basics","Foundations Capstone"
+];
+
+/* Deep authored Network (10) */
+const NETWORK_10=[
+  "Packet Capture Triage (Wireshark + Zeek)","TCP/IP Deep Dive","Subnetting & Routing Basics","Switching & VLANs",
+  "DNS In Depth","TLS Handshake & PKI","Firewalls & ACLs","IDS/IPS Concepts","BGP Basics & Security (Concepts)","Network Capstone"
+];
+
+/* Deep authored SQL (10) */
+const SQL_10=[
+  "SQL Security Fundamentals","Relational Modeling & Keys","SQL Basics SELECT/WHERE/JOIN","Transactions & Isolation Levels",
+  "Privileges/Roles/Least Privilege","Parameterization & ORM Safety","Stored Procedures Safeguards",
+  "Audit Logging & Triggers (Concepts)","Encryption at Rest & in Transit","SQL Capstone"
+];
+
+/* Blue / Red / DevSecOps / AI Security featured (shortened to focus work on Network & SQL now) */
+const BLUE_10=[
+  "C2 Beacon Hunt with Zeek + SPL","Windows Eventing (Sysmon)","Network Telemetry (NetFlow/PCAP)","DNS Security",
+  "Detection Engineering 1","Alert Triage & Escalation","Cloud Logs (AWS/GCP/Azure)","Endpoint Telemetry (EDR)",
+  "Blue Lab Day","Blue Capstone"
+];
+const RED_10=[
+  "OSINT & Recon","Web Enumeration","Auth Bypass (Concepts)","Linux Privesc (Concepts)",
+  "Windows Privesc (Concepts)","Credential Access (Concepts)","C2 Channels (Concepts)","Reporting & Debriefing",
+  "Kill Chain Mapping","Red Capstone"
+];
+const DEVSECOPS_10=[
+  "Break & Fix CI/CD Pipeline","SAST Fundamentals","SCA & SBOM","Container Security Basics",
+  "Image Scanning (Trivy)","Secrets Mgmt (Vault/KMS)","Supply Chain Risks (Sigstore)","Runtime Security (Falco)",
+  "Secure Release Gates","DevSecOps Capstone"
+];
+const AISEC_10=[
+  "Prompt Injection Defenses in an LLM App","AI Security Landscape","Data Poisoning (Concepts)","Adversarial Examples (Concepts)",
+  "Secure MLOps Pipelines","Runtime Monitoring (AI)","LLM App Risks","Vector DB Risks","AI Incident Response","AI Capstone"
+];
+
+/* Default & authored builders */
+function defaultModule(id, title, tools=[], objective="Hands-on learning objective") {
+  return {
+    id, title,
+    story:[
+      {type:'text', content:`You’re assigned: ${title}. You’ll learn how pros approach this problem and practice safely.`},
+      {type:'chips', items: tools.slice(0,3).length? tools.slice(0,3): ['Wireshark','Nmap']},
+      {type:'timeline', items:[
+        {t:'00:00', d:'Read the signal and scope the task.'},
+        {t:'00:10', d:'Collect the minimum evidence to orient.'},
+        {t:'00:20', d:'Decide on a safe next action.'}
+      ]},
+      {type:'callout', tone:'warn', content:'We simulate techniques safely. No unauthorized testing.'}
+    ],
+    practice:[
+      {mode:'mc', title:'First action?', options:[
+        {t:'Gather context & verify signal', correct:true, explain:'Evidence-first prevents false positives and bad changes.'},
+        {t:'Change configs in prod', correct:false, explain:'Risky without triage.'},
+        {t:'Ignore for later', correct:false, explain:'Delay raises risk.'},
+      ]},
+      {mode:'short', title:'Risk thinking', prompt:'State the primary risk and the one control that best mitigates it for this scenario.', rubric:{
+        minScore:.6, keywords:[{group:['risk','impact'],weight:.3},{group:['mitigate','prevent','control'],weight:.4},{group:['monitor','logs','verify'],weight:.3}],
+        modelAnswer:"Name the risk, the specific control, and how you verify in telemetry."
+      }},
+    ],
+    quiz:[
+      {q:'What principle reduces change risk?', answers:[
+        {t:'Small, reversible steps w/ evidence', correct:true, explain:'Limits blast radius and keeps you guided by data.'},
+        {t:'Big-bang changes', correct:false, explain:'Hard to roll back and diagnose.'},
+        {t:'Gut feeling', correct:false, explain:'We want data-driven operations.'},
+      ]}
+    ]
+  };
+}
+
+/* Authored modules with richer stories (Network + SQL heavy) */
+const AUTHORED = {
+  network: {
+    "Packet Capture Triage (Wireshark + Zeek)": {
+      id:'net-1', title:'Packet Capture Triage (Wireshark + Zeek)',
+      prereq: [],
+      story:[
+        {type:'text', content:"An outage window ends in 5 minutes. Ops drops a 5-minute PCAP on your desk. The business wants to know if the outage was network-related."},
+        {type:'chips', items:['Wireshark','Zeek']},
+        {type:'timeline', items:[
+          {t:'00:00', d:'Open PCAP → Wireshark → Statistics → Protocol Hierarchy (fast overview).'},
+          {t:'00:02', d:'Conversations → top talkers; Endpoints → scan for anomalies.'},
+          {t:'00:03', d:'zeek -r capture.pcap → review conn.log (flows), dns.log (names), http.log (URIs).'},
+          {t:'00:04', d:'Summarize: is it a network fault, app delay, or external?'}
+        ]},
+        {type:'diagram', content:`[Client]───TLS───>[API Gateway]───HTTP/2───>[App]\n             \\__ TCP RST spikes? __/`},
+        {type:'callout', tone:'warn', content:'Focus on signals that explain the outage: errors, retransmits, protocol mix, and unusual talkers.'}
+      ],
+      practice:[
+        {mode:'mc', title:'Fastest “what’s happening” panel in Wireshark?', options:[
+          {t:'Statistics → Protocol Hierarchy', correct:true, explain:'One glance shows protocol mix & volumes.'},
+          {t:'Edit → Preferences', correct:false, explain:'Not triage.'},
+          {t:'Help → About', correct:false, explain:'Informational only.'},
+        ]},
+        {mode:'short', title:'Zeek triage plan', prompt:'Name two Zeek logs you’d check first and what you’re looking for in each.', rubric:{
+          minScore:.6, keywords:[{group:['conn.log'],weight:.4},{group:['dns.log','http.log'],weight:.3},{group:['summary','flows','top'],weight:.3}],
+          modelAnswer:"conn.log for flow summary/top talkers; dns.log/http.log for names/URIs to label traffic quickly."
+        }}
+      ],
+      quiz:[
+        {q:'Which quick metric indicates scanning?', answers:[
+          {t:'Many destination ports from one source in short bursts', correct:true, explain:'That pattern is classic scanning.'},
+          {t:'TLS version variety', correct:false, explain:'Not definitive.'},
+          {t:'One long TCP session', correct:false, explain:'Likely normal file transfer.'}
+        ]}
+      ]
+    },
+    "TCP/IP Deep Dive": {
+      id:'net-2', title:'TCP/IP Deep Dive', prereq:['net-1'],
+      story:[
+        {type:'text', content:"You’re debugging intermittent slowness. Is it app-level or TCP congestion/retransmits?"},
+        {type:'chips', items:['Wireshark']},
+        {type:'diagram', content:`Client ──SYN/SYN-ACK/ACK──> Server\n[Check RTT, MSS, Window Scale, SACK, Retrans, DUP-ACK]`},
+        {type:'checklist', items:[
+          'Confirm three-way handshake health',
+          'Inspect window size evolution',
+          'Track DUP-ACK bursts & retransmissions',
+          'Correlate with application timestamps'
+        ]},
+      ],
+      practice:[
+        {mode:'mc', title:'What suggests congestion?', options:[
+          {t:'Frequent DUP-ACKs and retransmissions', correct:true, explain:'Signals packet loss/congestion.'},
+          {t:'TLS 1.3 present', correct:false, explain:'Unrelated to congestion.'},
+          {t:'IPv6 addresses', correct:false, explain:'Version isn’t the cause.'},
+        ]},
+      ],
+      quiz:[
+        {q:'If you see window size drop sharply, what is likely?', answers:[
+          {t:'Receiver limiting throughput due to buffering', correct:true, explain:'Window advertises receiver capacity.'},
+          {t:'DNS poisoning', correct:false, explain:'Different layer & signal.'},
+          {t:'Certificate pinning failure', correct:false, explain:'TLS issue, not TCP windowing.'}
+        ]}
+      ]
+    },
+    "Subnetting & Routing Basics": {
+      id:'net-3', title:'Subnetting & Routing Basics', prereq:['net-2'],
+      story:[
+        {type:'text', content:"A new site-to-site link is up but hosts cannot reach finance apps. Overlap or missing routes?"},
+        {type:'diagram', content:`HQ 10.10.0.0/16  <──VPN──>  Branch 10.10.8.0/24 (overlap!)`},
+        {type:'info', content:"Goal: detect overlapping subnets or route asymmetry and propose a clean re-address or more specific routes."}
+      ],
+      practice:[
+        {mode:'mc', title:'Which symptom hints subnet overlap?', options:[
+          {t:'Some hosts reachable, others blackhole randomly', correct:true, explain:'Overlap causes routing unpredictability.'},
+          {t:'CPU spikes on DB', correct:false, explain:'Not routing symptom.'},
+          {t:'Disk near full', correct:false, explain:'Storage issue.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Safest long-term fix for overlapping RFC1918 ranges?', answers:[
+          {t:'Re-address branch with a non-overlapping subnet', correct:true, explain:'Removes ambiguity permanently.'},
+          {t:'Static route hacks everywhere', correct:false, explain:'Brittle & error-prone.'},
+          {t:'Disable VPN encryption', correct:false, explain:'Not related and unsafe.'}
+        ]}
+      ]
+    },
+    "Switching & VLANs": {
+      id:'net-4', title:'Switching & VLANs', prereq:['net-3'],
+      story:[
+        {type:'text', content:"After a switch replacement, printers vanished from user VLAN. Suspect trunk misconfig."},
+        {type:'checklist', items:['Verify trunk allowed VLANs','Check native VLAN tags','Confirm STP states','Look for duplicate IP ranges']}
+      ],
+      practice:[
+        {mode:'mc', title:'Which change restores visibility quickest?', options:[
+          {t:'Allow printer VLAN on the uplink trunk', correct:true, explain:'If trunk blocks VLAN, devices isolate.'},
+          {t:'Replace all printers', correct:false, explain:'Unnecessary.'},
+          {t:'Disable STP globally', correct:false, explain:'Dangerous.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Native VLAN mismatch effects?', answers:[
+          {t:'Traffic leaks/frames untagged unexpectedly', correct:true, explain:'Leads to weird reachability problems.'},
+          {t:'All links down', correct:false, explain:'Not typical.'},
+          {t:'DNS cache growth', correct:false, explain:'Unrelated.'}
+        ]}
+      ]
+    },
+    "DNS In Depth": {
+      id:'net-5', title:'DNS In Depth', prereq:['net-4'],
+      story:[
+        {type:'text', content:"Users report random app failures; packet capture shows long DNS times and NXDOMAIN spikes."},
+        {type:'checklist', items:['Check resolvers health','Validate forwarders','Look at TTLs & cache hit rates','Inspect suspicious query patterns']},
+      ],
+      practice:[
+        {mode:'mc', title:'What increases DNS resilience fastest?', options:[
+          {t:'Anycast resolvers with health checks', correct:true, explain:'Reduces single points of failure.'},
+          {t:'Lower all TTLs to 0', correct:false, explain:'Increases load & latency.'},
+          {t:'Disable DNSSEC', correct:false, explain:'Not the right fix.'},
+        ]},
+      ],
+      quiz:[
+        {q:'NXDOMAIN spikes + malware alerts likely point to…', answers:[
+          {t:'DGA (domain generation algorithms) activity', correct:true, explain:'Many random non-existent domains is DGA hallmark.'},
+          {t:'BGP hijack', correct:false, explain:'Different indicators.'},
+          {t:'TLS offload bug', correct:false, explain:'Not DNS symptom.'}
+        ]}
+      ]
+    },
+    "TLS Handshake & PKI": {
+      id:'net-6', title:'TLS Handshake & PKI', prereq:['net-5'],
+      story:[
+        {type:'text', content:"Edge reports handshake failures after a cert rotation."},
+        {type:'diagram', content:`Client -> SNI -> ServerHello(cert, ALPN)\nCheck: Expiry, chain, key usage, SNI mismatch`},
+      ],
+      practice:[
+        {mode:'mc', title:'Most common cause after rotation?', options:[
+          {t:'Intermediate CA not included in chain', correct:true, explain:'Clients fail to build trust if chain incomplete.'},
+          {t:'Routers overheated', correct:false, explain:'Not likely root cause.'},
+          {t:'Too many DNS NS records', correct:false, explain:'Irrelevant.'},
+        ]},
+      ],
+      quiz:[
+        {q:'SNI mismatch symptoms?', answers:[
+          {t:'Unexpected cert CN/host mismatch errors', correct:true, explain:'Wrong virtual host served.'},
+          {t:'Higher RTT', correct:false, explain:'Latency, not cert.'},
+          {t:'UDP floods', correct:false, explain:'Different vector.'}
+        ]}
+      ]
+    },
+    "Firewalls & ACLs": {
+      id:'net-7', title:'Firewalls & ACLs', prereq:['net-6'],
+      story:[
+        {type:'text', content:"A new microservice cannot reach DB. Security wants least privilege enforced."},
+        {type:'checklist', items:['Document flows','Permit only required ports','Use service accounts','Log denies & monitor']},
+      ],
+      practice:[
+        {mode:'mc', title:'Best first change?', options:[
+          {t:'Create tight allow rules from service to DB port only', correct:true, explain:'Least privilege by design.'},
+          {t:'Open any to any', correct:false, explain:'Unacceptable exposure.'},
+          {t:'Disable firewall temporarily', correct:false, explain:'Risky pattern.'},
+        ]},
+      ],
+      quiz:[
+        {q:'What avoids shadow rules?', answers:[
+          {t:'Order ACLs carefully and document', correct:true, explain:'Prevents hidden blocks/permits.'},
+          {t:'Duplicate rules randomly', correct:false, explain:'Adds confusion.'},
+          {t:'No logging', correct:false, explain:'Visibility matters.'}
+        ]}
+      ]
+    },
+    "IDS/IPS Concepts": {
+      id:'net-8', title:'IDS/IPS Concepts', prereq:['net-7'],
+      story:[
+        {type:'text', content:"SOC sees repeated alerts for a new exploit; business asks for safe blocking."},
+        {type:'checklist', items:['Confirm fidelity','Deploy signature in monitor mode','Check false positives','Enable block w/ exceptions']},
+      ],
+      practice:[
+        {mode:'mc', title:'Safer rollout order?', options:[
+          {t:'Monitor → validate → block with alerting', correct:true, explain:'Avoids breaking legit traffic.'},
+          {t:'Block everywhere first', correct:false, explain:'High outage risk.'},
+          {t:'Ignore alerts', correct:false, explain:'Not acceptable.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Inline IPS risk you must manage?', answers:[
+          {t:'Latency & false positives causing outages', correct:true, explain:'Tuning and phased rollout needed.'},
+          {t:'More DNS queries', correct:false, explain:'Unrelated.'},
+          {t:'Extra TLS ciphers', correct:false, explain:'Not the key risk.'}
+        ]}
+      ]
+    },
+    "BGP Basics & Security (Concepts)": {
+      id:'net-9', title:'BGP Basics & Security (Concepts)', prereq:['net-8'],
+      story:[
+        {type:'text', content:"A partner announces a more specific prefix by mistake; routes prefer them."},
+        {type:'diagram', content:`Your ASN ——> Upstreams\n   \\__ Partner ASN announces 10.10.10.0/24 (you own 10.10.0.0/16)`},
+      ],
+      practice:[
+        {mode:'mc', title:'Mitigation lever?', options:[
+          {t:'Max-prefix & prefix-lists with RPKI validation', correct:true, explain:'Prevents hijacks/mistakes being accepted.'},
+          {t:'Disable TLS 1.3', correct:false, explain:'Not routing.'},
+          {t:'Clear ARP tables', correct:false, explain:'Layer 2, unrelated.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Why RPKI helps?', answers:[
+          {t:'Cryptographically verifies who can originate a prefix', correct:true, explain:'Stops many route leaks.'},
+          {t:'Encrypts traffic', correct:false, explain:'Different purpose.'},
+          {t:'Improves Wi-Fi roaming', correct:false, explain:'Unrelated.'}
+        ]}
+      ]
+    },
+    "Network Capstone": {
+      id:'net-10', title:'Network Capstone', prereq:['net-9'],
+      story:[
+        {type:'text', content:"Bring it together: triage a synthetic outage with pcap + logs, propose a change with safe rollback."},
+        {type:'callout', tone:'warn', content:'Simulated only. Never test against real unknown systems.'}
+      ],
+      practice:[
+        {mode:'short', title:'Capstone plan', prompt:'Outline your triage → fix → rollback plan in 6 bullets.', rubric:{
+          minScore:.6, keywords:[{group:['triage','pcap','logs'],weight:.3},{group:['fix','change','gate'],weight:.3},{group:['rollback','verify'],weight:.4}],
+          modelAnswer:"1) Confirm signal 2) Hypothesis 3) Evidence 4) Minimal fix 5) Verify 6) Rollback plan if needed."
+        }},
+      ],
+      quiz:[
+        {q:'Best practice for risky network change?', answers:[
+          {t:'Time-boxed, reversible, with monitoring & comms', correct:true, explain:'Reduces blast radius and surprises.'},
+          {t:'One big midnight push', correct:false, explain:'Hard to roll back.'},
+          {t:'No comms', correct:false, explain:'Stakeholders need heads-up.'}
+        ]}
+      ]
+    }
+  },
+  sql: {
+    "SQL Security Fundamentals": {
+      id:'sql-1', title:'SQL Security Fundamentals', prereq:[],
+      story:[
+        {type:'text', content:"A login form started throwing DB errors under load. We suspect unsafe string-built queries leaking stack traces."},
+        {type:'chips', items:['ELK','ORM']},
+        {type:'timeline', items:[
+          {t:'00:00', d:'Turn off verbose error returns to users (keep logs).'},
+          {t:'00:10', d:'Find string concatenation queries.'},
+          {t:'00:20', d:'Replace with parameterized statements.'}
+        ]},
+        {type:'callout', tone:'warn', content:'We focus on defense — no exploitation steps.'}
+      ],
+      practice:[
+        {mode:'mc', title:'Strongest immediate defense?', options:[
+          {t:'Parameterization (prepared statements/ORM binds)', correct:true, explain:'Stops untrusted input changing query structure.'},
+          {t:'Only escape quotes', correct:false, explain:'Brittle and incomplete.'},
+          {t:'Hide errors only', correct:false, explain:'Doesn’t fix injection risk.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Parameterization works for…', answers:[
+          {t:'SELECT, INSERT, UPDATE, DELETE', correct:true, explain:'All DML can bind params safely.'},
+          {t:'Only SELECT', correct:false, explain:'Not limited to SELECT.'},
+          {t:'Only WHERE clauses', correct:false, explain:'Also values and sets.'}
+        ]}
+      ]
+    },
+    "Relational Modeling & Keys": {
+      id:'sql-2', title:'Relational Modeling & Keys', prereq:['sql-1'],
+      story:[
+        {type:'text', content:"A report joins 6 tables and times out. The model hints no proper keys."},
+        {type:'diagram', content:`users(id PK)──< orders(user_id FK)\norders──< order_items(order_id FK)`},
+      ],
+      practice:[
+        {mode:'mc', title:'What reduces join pain?', options:[
+          {t:'Proper PK/FK + selective indexes', correct:true, explain:'Improves join plans and integrity.'},
+          {t:'SELECT * everywhere', correct:false, explain:'Worsens perf and errors.'},
+          {t:'Disable FK constraints', correct:false, explain:'Data drift risk.'},
+        ]},
+      ],
+      quiz:[
+        {q:'FK benefits include…', answers:[
+          {t:'Referential integrity & better plans', correct:true, explain:'Planner can optimize joins; data stays consistent.'},
+          {t:'Fewer rows on disk', correct:false, explain:'Not necessarily.'},
+          {t:'Automatic backups', correct:false, explain:'Separate concern.'}
+        ]}
+      ]
+    },
+    "SQL Basics SELECT/WHERE/JOIN": {
+      id:'sql-3', title:'SQL Basics SELECT/WHERE/JOIN', prereq:['sql-2'],
+      story:[
+        {type:'text', content:"An intern wrote a report with cross joins exploding to millions of rows."},
+        {type:'checklist', items:['Use explicit JOIN conditions','Select only needed columns','Filter early with WHERE','Test with LIMIT first']},
+      ],
+      practice:[
+        {mode:'mc', title:'Fix first?', options:[
+          {t:'Add ON conditions to convert cross join to inner join properly', correct:true, explain:'Prevents Cartesian explosion.'},
+          {t:'Add ORDER BY random()', correct:false, explain:'Worsens cost.'},
+          {t:'Disable indexes', correct:false, explain:'Makes slower.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Best way to avoid accidental cross joins?', answers:[
+          {t:'Always specify JOIN … ON predicates', correct:true, explain:'Removes ambiguity.'},
+          {t:'Rely on luck', correct:false, explain:'Not a method.'},
+          {t:'FULL OUTER JOIN for everything', correct:false, explain:'Rarely needed.'}
+        ]}
+      ]
+    },
+    "Transactions & Isolation Levels": {
+      id:'sql-4', title:'Transactions & Isolation Levels', prereq:['sql-3'],
+      story:[
+        {type:'text', content:"Two services update inventory concurrently; customers see negative stock."},
+        {type:'checklist', items:['Use transactions for multi-step updates','Pick isolation level per need','Avoid long-running locks','Add optimistic concurrency if suitable']},
+      ],
+      practice:[
+        {mode:'mc', title:'To stop dirty reads?', options:[
+          {t:'READ COMMITTED or higher', correct:true, explain:'Prevents dirty reads.'},
+          {t:'READ UNCOMMITTED', correct:false, explain:'Allows dirty reads.'},
+          {t:'Turn off WAL', correct:false, explain:'Not relevant & risky.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Which can prevent lost updates?', answers:[
+          {t:'Optimistic concurrency (version checks)', correct:true, explain:'Detects conflicting writes.'},
+          {t:'SELECT *', correct:false, explain:'No effect.'},
+          {t:'Cross join more', correct:false, explain:'Nope.'}
+        ]}
+      ]
+    },
+    "Privileges/Roles/Least Privilege": {
+      id:'sql-5', title:'Privileges/Roles/Least Privilege', prereq:['sql-4'],
+      story:[
+        {type:'text', content:"An app has DB superuser; audit flags risk. You’ll reduce it safely."},
+        {type:'checklist', items:['Create least-priv role','Grant minimal DML','No DDL in app role','Rotate creds & store safely']},
+      ],
+      practice:[
+        {mode:'mc', title:'First safe change?', options:[
+          {t:'Create a new least-priv role and migrate the app', correct:true, explain:'Minimize capability quickly.'},
+          {t:'Drop superuser immediately', correct:false, explain:'Risk outage mid-flow.'},
+          {t:'Share DBA creds with app team', correct:false, explain:'Increases risk.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Storing DB creds best practice?', answers:[
+          {t:'Use a secrets manager with short-lived tokens', correct:true, explain:'Auditable and revocable.'},
+          {t:'Hardcode in app', correct:false, explain:'Leaky & static.'},
+          {t:'Env var in plaintext forever', correct:false, explain:'Still risky.'}
+        ]}
+      ]
+    },
+    "Parameterization & ORM Safety": {
+      id:'sql-6', title:'Parameterization & ORM Safety', prereq:['sql-5'],
+      story:[
+        {type:'text', content:"You find a hotspot: string concatenation with user input in a search API."},
+        {type:'diagram', content:`/search?q=<user_input>  ->  SELECT * FROM items WHERE name LIKE '%<q>%';`},
+      ],
+      practice:[
+        {mode:'mc', title:'Safest fix?', options:[
+          {t:'Bind parameter & allow-list sortable columns', correct:true, explain:'Prevents structure injection and field abuse.'},
+          {t:'Escape quotes and hope', correct:false, explain:'Brittle.'},
+          {t:'Remove search feature', correct:false, explain:'Business loss.'},
+        ]},
+      ],
+      quiz:[
+        {q:'ORM safety still needs…', answers:[
+          {t:'Understanding how it binds and limiting raw queries', correct:true, explain:'ORMs help but aren’t magic.'},
+          {t:'Copy/paste from Stack Overflow', correct:false, explain:'Risky.'},
+          {t:'Disabling validation', correct:false, explain:'Opposite of safety.'}
+        ]}
+      ]
+    },
+    "Stored Procedures Safeguards": {
+      id:'sql-7', title:'Stored Procedures Safeguards', prereq:['sql-6'],
+      story:[
+        {type:'text', content:"Ops proposes moving logic into procedures. You must keep safety properties."},
+        {type:'checklist', items:['Use parameters, not string concat','Limit SECURITY DEFINER usage','Audit who can execute','Version & test deployments']},
+      ],
+      practice:[
+        {mode:'mc', title:'SECURITY DEFINER mis-use risk?', options:[
+          {t:'Privilege escalation if procedure not careful', correct:true, explain:'Executes with owner rights.'},
+          {t:'Faster GPUs', correct:false, explain:'No.'},
+          {t:'Less disk fragmentation', correct:false, explain:'N/A.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Safe pattern with procedures?', answers:[
+          {t:'Parameterize inside procedure and restrict rights', correct:true, explain:'Defense-in-depth.'},
+          {t:'Concatenate input into SQL', correct:false, explain:'Injection risk.'},
+          {t:'Grant EXECUTE to public', correct:false, explain:'Over-broad.'}
+        ]}
+      ]
+    },
+    "Audit Logging & Triggers (Concepts)": {
+      id:'sql-8', title:'Audit Logging & Triggers (Concepts)', prereq:['sql-7'],
+      story:[
+        {type:'text', content:"Compliance needs who-did-what on PII tables without crushing performance."},
+        {type:'checklist', items:['Use append-only audit table','Log who, when, which row id','Avoid logging full secrets','Ship to SIEM']},
+      ],
+      practice:[
+        {mode:'mc', title:'Lower overhead approach?', options:[
+          {t:'Minimal row-id + action + user to audit table', correct:true, explain:'Captures essentials with less cost.'},
+          {t:'Full row JSON snapshot always', correct:false, explain:'Heavy and PII risk.'},
+          {t:'No audit, just trust', correct:false, explain:'Won’t pass compliance.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Shipping to SIEM helps because…', answers:[
+          {t:'Tamper resistance & correlation', correct:true, explain:'Central storage + alerting.'},
+          {t:'Faster queries', correct:false, explain:'Not the point.'},
+          {t:'Auto encryption', correct:false, explain:'Separate control.'}
+        ]}
+      ]
+    },
+    "Encryption at Rest & in Transit": {
+      id:'sql-9', title:'Encryption at Rest & in Transit', prereq:['sql-8'],
+      story:[
+        {type:'text', content:"A partner needs TLS to the DB and at-rest encryption verified for an audit."},
+        {type:'checklist', items:['Enable TLS client-server with certs','Restrict ciphers','Enable disk/TDE','Document keys/rotation']},
+      ],
+      practice:[
+        {mode:'mc', title:'What’s essential for DB TLS?', options:[
+          {t:'Server cert chain + hostname verification', correct:true, explain:'Prevents MITM and mismatched hosts.'},
+          {t:'Self-signed any name', correct:false, explain:'Breaks verification.'},
+          {t:'No TLS for speed', correct:false, explain:'Unacceptable.'},
+        ]},
+      ],
+      quiz:[
+        {q:'At rest encryption is strongest when…', answers:[
+          {t:'Keys are managed/rotated securely (KMS/HSM)', correct:true, explain:'Keys separate from data.'},
+          {t:'Keys stored on same disk', correct:false, explain:'Not secure.'},
+          {t:'Only backups encrypted', correct:false, explain:'Primary still exposed.'}
+        ]}
+      ]
+    },
+    "SQL Capstone": {
+      id:'sql-10', title:'SQL Capstone', prereq:['sql-9'],
+      story:[
+        {type:'text', content:"Secure a small app: least-priv role, parameterize all endpoints, add audit on sensitive tables, and verify TLS."},
+        {type:'callout', tone:'warn', content:'We demonstrate defense patterns — no live targets.'}
+      ],
+      practice:[
+        {mode:'short', title:'Deployment checklist', prompt:'List the 6 highest-value changes for this app DB safety.', rubric:{
+          minScore:.6, keywords:[{group:['parameter'],weight:.2},{group:['least','privilege'],weight:.2},{group:['audit'],weight:.2},{group:['tls','encrypt'],weight:.2},{group:['secrets'],weight:.2}],
+          modelAnswer:"Param everywhere; least-priv role; secrets manager; TLS; audit PII tables; monitoring."
+        }},
+      ],
+      quiz:[
+        {q:'Most likely omission that bites later?', answers:[
+          {t:'Skipping parameterization in a “rare” endpoint', correct:true, explain:'One forgotten path creates risk window.'},
+          {t:'Too many comments', correct:false, explain:'Harmless.'},
+          {t:'Using tabs over spaces', correct:false, explain:'Style, not security.'}
+        ]}
+      ]
+    }
+  },
+  blue: {
+    "C2 Beacon Hunt with Zeek + SPL": {
+      id:'blu-1', title:'C2 Beacon Hunt with Zeek + SPL', prereq:[],
+      story:[
+        {type:'text', content:"Your SIEM shows periodic small egress to an odd ASN every 60s."},
+        {type:'chips', items:['Zeek','Splunk']},
+        {type:'timeline', items:[
+          {t:'00:00', d:'Zeek conn.log → group by src/dst; compute inter-arrival entropy.'},
+          {t:'00:05', d:'Pivot to dns.log/http.log; find domains/URIs/UA.'},
+          {t:'00:08', d:'SPL bin 30s, stats by dest, look for flat cadence.'}
+        ]},
+      ],
+      practice:[
+        {mode:'mc', title:'Best indicator of beaconing?', options:[
+          {t:'Low-entropy inter-arrival times', correct:true, explain:'Consistent cadence screams beacon.'},
+          {t:'High TLS version', correct:false, explain:'Not indicative.'},
+          {t:'One long transfer', correct:false, explain:'Probably normal.'},
+        ]},
+      ],
+      quiz:[
+        {q:'After confirming beacon, your next step is…', answers:[
+          {t:'Collect more intel & contain safely (block egress domain/IP)', correct:true, explain:'Containment after confirmation with change control.'},
+          {t:'Wipe endpoints immediately', correct:false, explain:'Too destructive; coordinate IR.'},
+          {t:'Announce publicly', correct:false, explain:'Not before IR plan.'}
+        ]}
+      ]
+    }
+  },
+  devsecops: {
+    "Break & Fix CI/CD Pipeline": {
+      id:'dso-1', title:'Break & Fix CI/CD Pipeline', prereq:[],
+      story:[
+        {type:'text', content:"Credentials leak in logs; unscanned images push to prod. You’ll fix gates and secrets."},
+        {type:'chips', items:['Trivy','Vault']},
+        {type:'checklist', items:['Secret manager + short-lived tokens','Pre-merge SAST/SCA','Trivy image/IaC scans','Artifact signing (cosign) before deploy']},
+      ],
+      practice:[
+        {mode:'mc', title:'First fix to stop damage right now?', options:[
+          {t:'Remove secrets from logs; move to secret manager', correct:true, explain:'Stop leakage at source while you add gates.'},
+          {t:'Skip tests to go faster', correct:false, explain:'Increases risk.'},
+          {t:'Change branding', correct:false, explain:'Cosmetic only.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Secure release gates include…', answers:[
+          {t:'Fail build on high-severity SAST/SCA & unsigned artifact', correct:true, explain:'Prevents dangerous deploys.'},
+          {t:'Manual approval only', correct:false, explain:'Humans miss things.'},
+          {t:'Nightly deploy without checks', correct:false, explain:'Unsafe.'}
+        ]}
+      ]
+    }
+  },
+  asec: {
+    "Prompt Injection Defenses in an LLM App": {
+      id:'ais-1', title:'Prompt Injection Defenses in an LLM App', prereq:[],
+      story:[
+        {type:'text', content:"Your LLM reads untrusted text; attackers try to coerce tool calls."},
+        {type:'checklist', items:['Strict tool schemas','Context isolation (system vs user)','Allow-listed tools','Human review for high-risk']},
+      ],
+      practice:[
+        {mode:'mc', title:'Most effective mitigation?', options:[
+          {t:'Schema-validated tool calls + least privilege', correct:true, explain:'Prevents arbitrary execution.'},
+          {t:'Longer prompts', correct:false, explain:'Doesn’t help.'},
+          {t:'Higher temperature', correct:false, explain:'Not safety.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Which reduces cross-doc injection risks?', answers:[
+          {t:'Isolate user data from system prompts & escape instruction-like tokens', correct:true, explain:'Reduces prompt influence.'},
+          {t:'Trust all inputs', correct:false, explain:'No.'},
+          {t:'Ignore errors', correct:false, explain:'No.'}
+        ]}
+      ]
+    }
+  }
+};
+
+/* Build tracks (10 each, heavily authored for Network/SQL) */
+function buildTrack(name, titles){
+  const out=[]; for (let i=0;i<titles.length;i++){
+    const t=titles[i]; const authored = AUTHORED[name]?.[t];
+    const id = authored?.id || `${name}-${i+1}`;
+    out.push(authored ? authored : defaultModule(id, t, Object.keys(TOOL_DB), `Objective: ${t}`));
+  }
+  return out;
+}
+const TRACKS = {
+  foundations: buildTrack('foundations', FOUNDATIONS_10),
+  blue:        buildTrack('blue', BLUE_10),
+  red:         buildTrack('red', RED_10),
+  devsecops:   buildTrack('devsecops', DEVSECOPS_10),
+  asec:        buildTrack('asec', AISEC_10),
+  network:     buildTrack('network', NETWORK_10),
+  sql:         buildTrack('sql', SQL_10),
+};
+
+/* ===== Course map, prerequisites, roles, badges, weekly challenges ===== */
+function hasPrereqsDone(module, progressTrack){ const req=module.prereq||[]; return req.every(r=>progressTrack[r]); }
 function CourseMap({title,nodes=[],progress={},onOpen}){
   return <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
     <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">{title}</h3>
       <Badge tone="gray">{Object.keys(progress).length} completed</Badge></div>
     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-      {nodes.map((n,idx)=>{ const done=progress[n.id]; return <button key={n.id||idx} onClick={()=>onOpen(n)}
-        className={cx("text-left p-4 rounded-xl border transition", done?"bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10 hover:bg-white/10")}>
-        <div className="flex items-center justify-between"><span className="font-semibold">{n.title}</span>
-          {done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-arrow-right"></i>}</div>
-      </button>; })}
+      {nodes.map((n,idx)=>{ const done=progress[n.id]; const locked = n.prereq && n.prereq.length>0 && !hasPrereqsDone(n,progress);
+        return <button key={n.id||idx} disabled={locked}
+          onClick={()=>onOpen(n)}
+          className={cx("text-left p-4 rounded-xl border transition", locked?"bg-white/5 border-white/10 opacity-50 cursor-not-allowed":
+            done?"bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10 hover:bg-white/10")}>
+          <div className="flex items-start justify-between"><span className="font-semibold">{n.title}</span>
+            {locked?<i className="fa-solid fa-lock text-white/50"></i>: done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
+          </div>
+          {n.prereq?.length>0 && <div className="text-xs mt-1 opacity-70">Prereq: {n.prereq.join(', ')}</div>}
+        </button>;
+      })}
     </div>
   </div>;
 }
@@ -702,30 +1117,43 @@ const ROLE_PLANS = {
   "AI Security Engineer": ['foundations','asec','blue']
 };
 
-/* ===== Certificates ===== */
-function Certificate({user,trackName,onClose}){
-  const ref=useRef(null);
-  const printIt=()=>window.print();
-  return <div className="fixed inset-0 z-50 grid place-items-center p-4 print:bg-white print:text-black">
-    <div className="absolute inset-0 bg-black/60 print:hidden" onClick={onClose}></div>
-    <div ref={ref} className="glass rounded-2xl p-8 w-full max-w-3xl border border-white/10 bg-white/10 print:bg-white print:text-black">
-      <div className="text-center">
-        <div className="text-2xl font-bold">Certificate of Completion</div>
-        <div className="mt-2 opacity-80">This certifies that</div>
-        <div className="mt-4 text-3xl font-black">{user?.email||'Student'}</div>
-        <div className="mt-2 opacity-80">has successfully completed the</div>
-        <div className="mt-2 text-xl font-bold">{trackName}</div>
-        <div className="mt-6 text-sm opacity-80">CyberSec Academy — Real-World Cybersecurity</div>
-      </div>
-      <div className="mt-6 flex justify-center gap-3 print:hidden">
-        <button className="px-4 py-2 bg-brand text-black rounded" onClick={printIt}><i className="fa-solid fa-print mr-2"></i>Print / Save as PDF</button>
-        <button className="px-4 py-2 bg-white/10 rounded" onClick={onClose}>Close</button>
-      </div>
+function RoleDashboard({role,progress,onJump}){
+  const tracks = ROLE_PLANS[role]||[];
+  const total = tracks.reduce((a,t)=>a+TRACKS[t].length,0);
+  const done  = tracks.reduce((a,t)=>a+Object.keys(progress[t]||{}).length,0);
+  const pct = Math.round((done/total)*100);
+  return <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+    <div className="flex items-center justify-between">
+      <div className="text-lg font-semibold">{role}</div>
+      <Badge tone="gray">{pct}% complete</Badge>
+    </div>
+    <div className="mt-3 h-2 bg-white/10 rounded overflow-hidden"><div className="h-2 bg-brand" style={{width:`${pct}%`}}></div></div>
+    <div className="mt-3 flex flex-wrap gap-2">
+      {tracks.map(t=><button key={t} className="px-3 py-2 bg-white/10 rounded" onClick={()=>onJump(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}
     </div>
   </div>;
 }
 
-/* ===== Auth Modal ===== */
+/* Badges */
+function computeBadges(progress){ const badges=new Set(progress.badges||[]);
+  const perTrack = Object.keys(TRACKS);
+  for(const t of perTrack){
+    const count = Object.keys(progress[t]||{}).length;
+    if(count>=3) badges.add(`${t}:Rookie`);
+    if(count>=7) badges.add(`${t}:Practitioner`);
+    if(count>=10) badges.add(`${t}:Capstone`);
+  }
+  return Array.from(badges);
+}
+
+/* Weekly challenges (pull modules from different tracks) */
+const WEEKLY = [
+  { id:'wch-1', title:'Blue + Network: Beacon Cadence Hunt', pulls:['blue','network'] },
+  { id:'wch-2', title:'DevSecOps + SQL: Secrets & Param Fixathon', pulls:['devsecops','sql'] },
+  { id:'wch-3', title:'Foundations Mix: Safe Triage Sprint', pulls:['foundations','network','sql'] }
+];
+
+/* ===== Auth modal & certificate omitted for brevity from previous version — keep simple auth here ===== */
 function AuthModal({onClose,onAuthed}){
   const [tab,setTab]=useState('login'); const [email,setEmail]=useState(''); const [pass,setPass]=useState(''); const [err,setErr]=useState('');
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
@@ -748,7 +1176,7 @@ function AuthModal({onClose,onAuthed}){
           try { const fn=tab==='login'? signIn: signUp; const u=await fn(email,pass); appState.user=u;
             const existing=await loadProgress(u.uid); onAuthed(u,existing); onClose(); } catch(e){ setErr(e.message); }
         }}>{tab==='login'?'Log In':'Create Account'}</button>
-        {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 text-center">Demo auth active. Enable Firebase for real auth.</div>}
+        {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 text-center">Demo auth active. Enable Firebase in config for real auth.</div>}
       </div>
     </motion.div>
   </div>;
@@ -761,11 +1189,11 @@ function App(){
   const [user,setUser]=useState(null);
   const [progress,setProgress]=useState({ xp:0, badges:[], foundations:{}, blue:{}, red:{}, devsecops:{}, asec:{}, network:{}, sql:{} });
   const [activeTrack,setActiveTrack]=useState('foundations');
-  const [certFor,setCertFor]=useState(null);
 
   useEffect(()=>{ initFirebaseIfNeeded(); },[]);
   useEffect(()=>{ try{ hljs?.highlightAll() }catch{} },[page,activeTrack]);
-  useEffect(()=>{ if(user) saveProgress(user.uid,progress); },[progress, user]);
+  useEffect(()=>{ if(user){ const b=computeBadges(progress); setProgress(p=>({...p,badges:b})); saveProgress(user.uid, {...progress, badges:b}); }},[progress.foundations,progress.blue,progress.red,progress.devsecops,progress.asec,progress.network,progress.sql]);
+  useEffect(()=>{ if(user) saveProgress(user.uid,progress); },[user]);
 
   const giveXP=(n)=> setProgress(p=>({...p, xp:(p.xp||0)+n }));
   const openModule=(m,trackKey)=>{
@@ -779,9 +1207,12 @@ function App(){
   const TRACK_LABELS={ foundations:'Foundations', blue:'Blue Team', red:'Red Team', devsecops:'DevSecOps', asec:'AI Security', network:'Network', sql:'Databases (SQL)' };
 
   const modulesDone = ['foundations','blue','red','devsecops','asec','network','sql'].reduce((a,k)=>a+Object.keys(progress[k]).length,0);
-  const xpPct=Math.min(100, Math.round((modulesDone / 210) * 100));
+  const totalModules = Object.values(TRACKS).reduce((a,v)=>a+v.length,0);
+  const xpPct=Math.min(100, Math.round((modulesDone / totalModules) * 100));
 
-  const completedTrack = (k)=> Object.keys(progress[k]).length >= TRACKS[k].length*0.8; // 80% threshold for cert (tweak as you like)
+  const completedTrack = (k)=> Object.keys(progress[k]).length >= TRACKS[k].length*0.8;
+
+  const nodesWithPrereq=(key)=>TRACKS[key].map(m=>({id:m.id,title:m.title,prereq:m.prereq}));
 
   return <div className="min-h-screen flex flex-col">
     <header className="sticky top-0 z-30">
@@ -791,12 +1222,12 @@ function App(){
             <div className="relative"><div className="absolute inset-0 rounded-full animate-[pulse-ring_1.8s_ease-out_infinite]"></div>
               <div className="h-10 w-10 rounded-full bg-brand"></div></div>
             <div className="text-lg font-bold">CyberSec Academy</div>
-            <Badge>Real-World, Story-Driven</Badge>
+            <Badge>Story → Practice → Quiz</Badge>
           </div>
           <nav className="hidden md:flex items-center gap-2">
-            {['home','learn','redblue','roles','labs','community','dashboard','certs'].map(p =>
+            {['home','learn','maps','roles','labs','challenges','dashboard'].map(p =>
               <button key={p} onClick={()=>setPage(p)} className={cx("px-3 py-2 rounded text-sm", page===p?"bg-white/15":"hover:bg-white/10")}>
-                {p==='redblue'?'Course Maps':p==='certs'?'Certificates':p[0].toUpperCase()+p.slice(1)}
+                {p==='maps'?'Course Maps':p[0].toUpperCase()+p.slice(1)}
               </button>)}
           </nav>
           <div className="flex items-center gap-2">
@@ -815,7 +1246,7 @@ function App(){
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
               <h1 className="text-4xl md:text-5xl font-black leading-tight">Learn cybersecurity the way <span className="text-brand">professionals</span> do.</h1>
-              <p className="mt-4 text-white/80 text-lg">Story-mode lessons → hands-on labs → graded practice → community → certificates.</p>
+              <p className="mt-4 text-white/80 text-lg">Immersive stories → hands-on labs → graded practice → community → badges.</p>
               <div className="mt-6 flex gap-3"><button onClick={()=>setPage('learn')} className="px-5 py-3 bg-brand text-black rounded-xl font-bold">Start Learning</button>
                 <button onClick={()=>setPage('roles')} className="px-5 py-3 bg-white/10 rounded-xl">Pick a Role Path</button></div>
             </motion.div>
@@ -838,70 +1269,56 @@ function App(){
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">{TRACKS[activeTrack].map(m=>{
           const done=!!progress[activeTrack][m.id];
-          return <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border", done? "bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10")}>
+          const locked = m.prereq && m.prereq.length>0 && !hasPrereqsDone(m,progress[activeTrack]);
+          return <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border", locked? "bg-white/5 border-white/10 opacity-50": done? "bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10")}>
             <div className="flex items-start justify-between gap-3">
-              <div><h3 className="font-semibold">{m.title}</h3><div className="mt-1 text-sm opacity-70">{done?'Completed':'Story → Practice → Quiz'}</div></div>
-              {done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
+              <div><h3 className="font-semibold">{m.title}</h3>
+                <div className="mt-1 text-sm opacity-70">{locked? 'Locked (complete prereqs) :': (done?'Completed':'Story → Practice → Quiz')}</div></div>
+              {locked?<i className="fa-solid fa-lock text-white/50"></i>: done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
             </div>
-            <div className="mt-4 flex gap-2">{!done
-              ? <button className="px-3 py-2 bg-brand text-black rounded-lg font-semibold" onClick={()=>openModule(m,activeTrack)}>Start</button>
-              : <button className="px-3 py-2 bg-white/10 rounded-lg" onClick={()=>openModule(m,activeTrack)}>Review</button>}
+            <div className="mt-4 flex gap-2">
+              {!locked && (!done
+                ? <button className="px-3 py-2 bg-brand text-black rounded-lg font-semibold" onClick={()=>openModule(m,activeTrack)}>Start</button>
+                : <button className="px-3 py-2 bg-white/10 rounded-lg" onClick={()=>openModule(m,activeTrack)}>Review</button>)}
             </div>
           </motion.div>;
         })}</div>
       </section>}
 
-      {page==='redblue' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-        <h2 className="text-2xl font-bold">All Course Maps</h2>
-        <p className="opacity-80">Open any module; prerequisites are guided within modules.</p>
+      {page==='maps' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Course Maps (with prerequisites)</h2>
         <div className="grid lg:grid-cols-2 gap-6 mt-6">
           {Object.entries({Foundations:'foundations','Blue Team':'blue','Red Team':'red','DevSecOps':'devsecops','AI Security':'asec','Network':'network','Databases (SQL)':'sql'}).map(([label,key])=>
-            <CourseMap key={key} title={label} nodes={TRACKS[key].map(m=>({id:m.id,title:m.title}))} progress={progress[key]} onOpen={(n)=>openModule(TRACKS[key].find(m=>m.id===n.id),key)}/>)}
+            <CourseMap key={key} title={label} nodes={TRACKS[key].map(m=>({id:m.id,title:m.title,prereq:m.prereq}))} progress={progress[key]} onOpen={(n)=>openModule(TRACKS[key].find(m=>m.id===n.id),key)}/>)}
         </div>
       </section>}
 
       {page==='roles' && <section className="max-w-6xl mx-auto px-4 py-10 space-y-6">
-        <h2 className="text-2xl font-bold">Role-based Paths</h2>
-        <p className="opacity-80">Pick a role for a curated multi-track journey.</p>
+        <h2 className="text-2xl font-bold">Role-based Dashboards</h2>
         <div className="grid md:grid-cols-2 gap-4">
-          {Object.entries(ROLE_PLANS).map(([role, tracks])=>
-            <div key={role} className="p-4 rounded-2xl bg-white/5 border border-white/10">
-              <div className="flex items-center justify-between">
-                <div className="text-lg font-semibold">{role}</div>
-                <Badge tone="gray">{tracks.length} Tracks</Badge>
-              </div>
-              <div className="mt-2 text-sm opacity-80">Tracks: {tracks.map(t=>TRACK_LABELS[t]).join(' • ')}</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {tracks.map(t=><button key={t} className="px-3 py-2 bg-white/10 rounded" onClick={()=>{ setActiveTrack(t); setPage('learn'); }}>{TRACK_LABELS[t]}</button>)}
-              </div>
-            </div>)}
+          {Object.keys(ROLE_PLANS).map(r=>
+            <RoleDashboard key={r} role={r} progress={progress} onJump={(t)=>{ setActiveTrack(t); setPage('learn'); }}/>)}
         </div>
       </section>}
 
       {page==='labs' && <section className="max-w-5xl mx-auto px-4 py-10 space-y-6">
         <h2 className="text-2xl font-bold">Interactive Labs</h2>
-        {!CONFIG.USE_LABS && <p className="opacity-80">Using safe simulations. Enable <code>USE_LABS</code> later to request ephemeral real labs (safe/legal).</p>}
         <Terminal script={[
           {cmd:'whoami', out:'analyst'},
           {cmd:'netstat -tuln', out:'tcp 0 0 0.0.0.0:22 LISTEN\n0.0.0.0:80 LISTEN'},
           {cmd:'nmap -sV -O 127.0.0.1', out:'22/tcp open ssh OpenSSH 8.9\nOS details: Linux 5.x'}
         ]}/>
-        {CONFIG.USE_LABS && <div className="p-4 rounded bg-white/5 border border-white/10">
-          <div className="font-semibold mb-2">Request Ephemeral Lab</div>
-          <button className="px-3 py-2 bg-brand text-black rounded" onClick={async()=>{
-            try{
-              const res=await fetch(`${CONFIG.LABS_URL}/api/labs/request`,{method:'POST'}); const data=await res.json();
-              alert(`Lab ready\nHost: ${data.host}\nUser: ${data.user}\nNote: Use only for ethical, approved practice.`);
-            }catch{ alert('Lab backend unreachable (stub).'); }
-          }}>Request Lab</button>
-        </div>}
+        {!CONFIG.USE_LABS && <div className="text-sm opacity-70">Using safe, local simulations. Later you can enable real ephemeral labs via <code>USE_LABS</code>.</div>}
       </section>}
 
-      {page==='community' && <section className="max-w-4xl mx-auto px-4 py-10">
-        <h2 className="text-2xl font-bold mb-4">Community Chat</h2>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div id="general-chat"></div>
-          <p className="text-sm opacity-70 mt-3">Tip: Each module has its own discussion thread too.</p>
+      {page==='challenges' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Weekly Multi-Track Challenges</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {WEEKLY.map(c=><div key={c.id} className="p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div className="font-semibold">{c.title}</div>
+            <div className="text-sm opacity-70 mt-1">Tracks: {c.pulls.map(t=>t[0].toUpperCase()+t.slice(1)).join(' • ')}</div>
+            <button className="mt-3 px-3 py-2 bg-brand text-black rounded" onClick={()=>alert('Challenge started — pulls lessons from listed tracks. (Stubbed)')}>Start</button>
+          </div>)}
         </div>
       </section>}
 
@@ -912,24 +1329,11 @@ function App(){
           {Object.keys(TRACK_LABELS).map(k=><div key={k} className="p-4 rounded-2xl bg-white/5 border border-white/10">
             <div className="text-sm opacity-70">{TRACK_LABELS[k]}</div>
             <div className="text-3xl font-black mt-2">{Object.keys(progress[k]).length}/{TRACKS[k].length}</div>
-            {completedTrack(k) && <button className="mt-3 px-3 py-2 bg-brand text-black rounded" onClick={()=>setPage('certs')}>Get Certificate</button>}
           </div>)}
-        </div>
-      </section>}
-
-      {page==='certs' && <section className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-        <h2 className="text-2xl font-bold">Certificates</h2>
-        <p className="opacity-80">Complete ~80% of a track to unlock a certificate.</p>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.keys(TRACK_LABELS).map(k=>{
-            const unlocked = completedTrack(k);
-            return <div key={k} className="p-4 rounded-2xl bg-white/5 border border-white/10">
-              <div className="font-semibold">{TRACK_LABELS[k]}</div>
-              <div className="text-sm opacity-70">{Object.keys(progress[k]).length}/{TRACKS[k].length} completed</div>
-              <button disabled={!unlocked} className={cx("mt-3 px-3 py-2 rounded", unlocked? "bg-brand text-black":"bg-white/10 opacity-60 cursor-not-allowed")}
-                onClick={()=>setCertFor(TRACK_LABELS[k])}>Generate Certificate</button>
-            </div>;
-          })}
+          <div className="md:col-span-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div className="text-sm opacity-70 mb-2">Badges Earned</div>
+            <div className="flex flex-wrap gap-2">{(progress.badges||[]).length? progress.badges.map(b=><Badge key={b} tone="green">{b}</Badge>) : <span className="opacity-60 text-sm">No badges yet — complete modules to earn them.</span>}</div>
+          </div>
         </div>
       </section>}
     </main>
@@ -945,43 +1349,13 @@ function App(){
       </div>
     </footer>
 
-    {/* Auth + Cert modals */}
     {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuthed={(u,existing)=>{ setUser(u); if(existing) setProgress(existing); }}/>}
-    {certFor && <Certificate user={user} trackName={certFor} onClose={()=>setCertFor(null)}/>}
   </div>;
-}
-
-/* ===== Community (general) mount (simple demo) ===== */
-function mountGeneralChat(){
-  const el=document.getElementById('general-chat'); if(!el) return;
-  const Wrap=()=>{
-    const [msgs,setMsgs]=useState([]); const [text,setText]=useState('');
-    useEffect(()=>{ let unsub; (async()=>{
-      if(CONFIG.USE_FIREBASE && appState.db){
-        unsub = appState.db.collection('rooms').doc('general').collection('messages').orderBy('ts','asc').onSnapshot(s=>{
-          setMsgs(s.docs.map(d=>d.data()));
-        });
-      } else {
-        const key='chat_general'; setMsgs(JSON.parse(localStorage.getItem(key)||'[]'));
-      }
-    })(); return ()=>unsub&&unsub(); },[]);
-    const send=async()=>{ if(!text.trim()) return; const msg={ user:appState.user?.email||'Guest', text:text.trim(), ts:Date.now() };
-      if(CONFIG.USE_FIREBASE && appState.db){ await appState.db.collection('rooms').doc('general').collection('messages').add(msg); }
-      else { const key='chat_general'; const cur=JSON.parse(localStorage.getItem(key)||'[]'); cur.push(msg); localStorage.setItem(key,JSON.stringify(cur)); setMsgs(cur); }
-      setText(''); };
-    return <div>
-      <div className="h-72 overflow-y-auto space-y-2">{msgs.map((m,i)=><div key={i} className="text-sm"><span className="text-brand">{m.user}:</span> {m.text}</div>)}</div>
-      <div className="mt-3 flex gap-2"><input className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" value={text} onChange={e=>setText(e.target.value)} placeholder="Ask, share, help…"/>
-        <button className="px-4 py-2 bg-brand text-black rounded" onClick={send}>Send</button></div>
-      {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 mt-2">Demo chat stored locally. Enable Firebase for realtime multi-user.</div>}
-    </div>;
-  };
-  ReactDOM.createRoot(el).render(<Wrap/>);
 }
 
 /* ===== Boot ===== */
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-mountGeneralChat();
   </script>
 </body>
 </html>
+
