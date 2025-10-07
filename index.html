@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <style>
         :root {
             --primary: #0d6efd;
@@ -132,6 +131,11 @@
             background: #00b8e6;
         }
         
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
         .btn-devsecops {
             background: var(--devsecops);
             color: white;
@@ -223,6 +227,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
         }
         
         .module-item.completed {
@@ -233,6 +238,10 @@
         .module-item.current {
             background: #f0f8ff;
             border-color: var(--cyber-blue);
+        }
+        
+        .module-item:hover {
+            background: #f8f9fa;
         }
         
         .badge {
@@ -345,6 +354,63 @@
         .quiz-options li.incorrect {
             background: #f8d7da;
             border-color: var(--danger);
+        }
+        
+        /* Challenge Sections */
+        .challenge-section {
+            display: none;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .challenge-section.active {
+            display: block;
+        }
+        
+        .challenge-instructions {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .challenge-task {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .challenge-editor {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+        
+        .editor-header {
+            background: #2d2d2d;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        
+        .editor-body {
+            padding: 1rem;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .challenge-hint {
+            background: #d1ecf1;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--info);
         }
         
         /* Features Section */
@@ -479,138 +545,11 @@
             text-align: center;
         }
         
-        /* New Tech Section */
-        .new-tech {
-            padding: 4rem 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .tech-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-        
-        .tech-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .tech-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .tech-card h3 i {
-            color: var(--cyber-accent);
-        }
-        
-        .tech-tools {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 1rem;
-        }
-        
-        .tool-tag {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-        
-        /* Challenges */
-        .challenges {
-            padding: 4rem 0;
-            background-color: white;
-        }
-        
-        .challenges-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-        }
-        
-        .challenge-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s;
-        }
-        
-        .challenge-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .challenge-img {
-            height: 160px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3rem;
-        }
-        
-        .challenge-devsecops .challenge-img {
-            background: var(--devsecops);
-        }
-        
-        .challenge-ai .challenge-img {
-            background: var(--ai-security);
-        }
-        
-        .challenge-network .challenge-img {
-            background: var(--cyber-blue);
-        }
-        
-        .challenge-content {
-            padding: 1.5rem;
-        }
-        
-        .challenge-difficulty {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        
-        .difficulty-beginner {
-            background: #e8f5e9;
-            color: var(--success);
-        }
-        
-        .difficulty-intermediate {
-            background: #fff3e0;
-            color: #ff9800;
-        }
-        
-        .difficulty-advanced {
-            background: #ffebee;
-            color: var(--danger);
-        }
-        
-        .challenge-content h3 {
-            margin-bottom: 1rem;
-            color: var(--cyber-dark);
-        }
-        
         /* Interactive Lab */
         .interactive-lab {
             padding: 4rem 0;
             background: var(--cyber-dark);
             color: white;
-            text-align: center;
         }
         
         .lab-container {
@@ -649,43 +588,72 @@
             flex-wrap: wrap;
         }
         
-        /* Community */
-        .community {
-            padding: 4rem 0;
-            background-color: #f0f4f8;
-        }
-        
-        .community-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
+        /* Authentication Modal */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
             align-items: center;
         }
         
-        .community-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-top: 2rem;
+        .auth-modal.active {
+            display: flex;
         }
         
-        .stat {
-            text-align: center;
-            padding: 1.5rem;
+        .auth-content {
             background: white;
+            padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            width: 90%;
+            max-width: 400px;
         }
         
-        .stat i {
-            font-size: 2rem;
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .auth-tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .auth-tab.active {
+            border-bottom-color: var(--cyber-accent);
             color: var(--cyber-accent);
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .form-group {
             margin-bottom: 1rem;
         }
         
-        .stat h3 {
-            font-size: 2rem;
-            color: var(--cyber-dark);
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
         }
         
         /* Footer */
@@ -758,14 +726,6 @@
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .tech-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .community-content {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -783,7 +743,6 @@
                     <li><a href="#" data-nav="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                     <li><a href="#" data-nav="learning"><i class="fas fa-graduation-cap"></i> Learning</a></li>
                     <li><a href="#" data-nav="challenges"><i class="fas fa-tasks"></i> Challenges</a></li>
-                    <li><a href="#" data-nav="community"><i class="fas fa-users"></i> Community</a></li>
                 </ul>
             </nav>
             <div class="auth-buttons">
@@ -793,7 +752,45 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Authentication Modal -->
+    <div class="auth-modal" id="auth-modal">
+        <div class="auth-content">
+            <div class="auth-tabs">
+                <div class="auth-tab active" data-tab="login">Login</div>
+                <div class="auth-tab" data-tab="signup">Sign Up</div>
+            </div>
+            
+            <div class="auth-form active" id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-primary" id="do-login" style="width: 100%;">Log In</button>
+            </div>
+            
+            <div class="auth-form" id="signup-form">
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password">
+                </div>
+                <div class="form-group">
+                    <label for="signup-confirm">Confirm Password</label>
+                    <input type="password" id="signup-confirm" placeholder="Confirm your password">
+                </div>
+                <button class="btn btn-primary" id="do-signup" style="width: 100%;">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
     <main id="main-content">
         <!-- Home Section -->
         <section id="home-section">
@@ -920,96 +917,6 @@
                 </div>
             </section>
 
-            <!-- New Tech Section -->
-            <section class="new-tech">
-                <div class="container">
-                    <div class="section-title">
-                        <h2>Master Emerging Technologies</h2>
-                        <p>Stay ahead of the curve with specialized training in DevSecOps and AI Security</p>
-                    </div>
-                    <div class="tech-container">
-                        <div>
-                            <div class="tech-card">
-                                <h3><i class="fas fa-code-branch"></i> DevSecOps</h3>
-                                <p>Integrate security practices into your DevOps workflow. Learn to automate security testing, secure your CI/CD pipeline, and implement infrastructure as code security.</p>
-                                <div class="tech-tools">
-                                    <span class="tool-tag">Docker</span>
-                                    <span class="tool-tag">Kubernetes</span>
-                                    <span class="tool-tag">Jenkins</span>
-                                    <span class="tool-tag">GitLab CI</span>
-                                    <span class="tool-tag">Terraform</span>
-                                    <span class="tool-tag">Chef</span>
-                                </div>
-                            </div>
-                            <div class="tech-card">
-                                <h3><i class="fas fa-robot"></i> AI & Machine Learning Security</h3>
-                                <p>Protect AI systems from adversarial attacks, ensure model integrity, and implement ethical AI practices. Learn both offensive and defensive AI security techniques.</p>
-                                <div class="tech-tools">
-                                    <span class="tool-tag">TensorFlow</span>
-                                    <span class="tool-tag">PyTorch</span>
-                                    <span class="tool-tag">IBM ART</span>
-                                    <span class="tool-tag">Adversarial ML</span>
-                                    <span class="tool-tag">Model Monitoring</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="background: white; padding: 2rem; border-radius: 10px; color: #333; text-align: center;">
-                                <h3 style="margin-bottom: 1rem; color: var(--cyber-dark);">Ready to Start Your Journey?</h3>
-                                <p style="margin-bottom: 1.5rem;">Join thousands of students mastering cybersecurity skills</p>
-                                <button class="btn btn-primary" id="join-now-btn" style="width: 100%; margin-bottom: 1rem;">Join Now - It's Free</button>
-                                <p style="font-size: 0.9rem; color: var(--secondary);">No credit card required</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Challenges -->
-            <section class="challenges">
-                <div class="container">
-                    <div class="section-title">
-                        <h2>Hands-On Challenges</h2>
-                        <p>Test your skills with realistic scenarios that security professionals face daily.</p>
-                    </div>
-                    <div class="challenges-grid">
-                        <div class="challenge-card challenge-devsecops">
-                            <div class="challenge-img">
-                                <i class="fas fa-code-branch"></i>
-                            </div>
-                            <div class="challenge-content">
-                                <span class="challenge-difficulty difficulty-intermediate">Intermediate</span>
-                                <h3>CI/CD Pipeline Security</h3>
-                                <p>Identify and fix security vulnerabilities in a Jenkins pipeline configuration.</p>
-                                <button class="btn btn-outline start-challenge-btn" data-challenge="cicd" style="margin-top: 1rem; border-color: var(--devsecops); color: var(--devsecops);">Start Challenge</button>
-                            </div>
-                        </div>
-                        <div class="challenge-card challenge-ai">
-                            <div class="challenge-img">
-                                <i class="fas fa-robot"></i>
-                            </div>
-                            <div class="challenge-content">
-                                <span class="challenge-difficulty difficulty-advanced">Advanced</span>
-                                <h3>Adversarial AI Attack</h3>
-                                <p>Create adversarial examples to fool an image classification model and then defend against them.</p>
-                                <button class="btn btn-outline start-challenge-btn" data-challenge="ai" style="margin-top: 1rem; border-color: var(--ai-security); color: var(--ai-security);">Start Challenge</button>
-                            </div>
-                        </div>
-                        <div class="challenge-card challenge-network">
-                            <div class="challenge-img">
-                                <i class="fas fa-network-wired"></i>
-                            </div>
-                            <div class="challenge-content">
-                                <span class="challenge-difficulty difficulty-beginner">Beginner</span>
-                                <h3>Network Traffic Analysis</h3>
-                                <p>Analyze a packet capture file to identify malicious activity and data exfiltration attempts.</p>
-                                <button class="btn btn-outline start-challenge-btn" data-challenge="network" style="margin-top: 1rem; border-color: var(--cyber-blue); color: var(--cyber-blue);">Start Challenge</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- Interactive Lab -->
             <section class="interactive-lab">
                 <div class="container">
@@ -1041,63 +948,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- Community -->
-            <section class="community">
-                <div class="container">
-                    <div class="section-title">
-                        <h2>Join Our Cybersecurity Community</h2>
-                        <p>Learn from professionals, share knowledge, and collaborate on security projects.</p>
-                    </div>
-                    <div class="community-content">
-                        <div>
-                            <h3>Connect with Cybersecurity Experts</h3>
-                            <p>Our community brings together students, professionals, and experts from all areas of cybersecurity. Participate in forums, join live Q&A sessions, and get feedback on your projects.</p>
-                            <p>Whether you're troubleshooting a difficult challenge or exploring career options, our community is here to support your journey.</p>
-                            <div class="community-stats">
-                                <div class="stat">
-                                    <i class="fas fa-users"></i>
-                                    <h3>15,000+</h3>
-                                    <p>Active Members</p>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-comment-dots"></i>
-                                    <h3>24,500+</h3>
-                                    <p>Discussions</p>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-user-tie"></i>
-                                    <h3>450+</h3>
-                                    <p>Industry Experts</p>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-hands-helping"></i>
-                                    <h3>8,200+</h3>
-                                    <p>Problems Solved</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
-                                <h3 style="margin-bottom: 1.5rem; color: var(--cyber-dark);">Forum Highlights</h3>
-                                <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                                    <h4 style="color: var(--cyber-blue);">Best practices for securing ML models in production?</h4>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>AI_Security_Pro</strong> · 36 comments</p>
-                                </div>
-                                <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                                    <h4 style="color: var(--devsecops);">Implementing security gates in GitLab CI/CD pipeline</h4>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>DevSecExpert</strong> · 28 comments</p>
-                                </div>
-                                <div style="margin-bottom: 1.5rem;">
-                                    <h4 style="color: var(--ai-security);">Detecting adversarial attacks on computer vision systems</h4>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>ML_Defender</strong> · 42 comments</p>
-                                </div>
-                                <button class="btn btn-primary" id="join-forum-btn" style="width: 100%;">Join Discussion</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
         </section>
 
         <!-- Dashboard Section -->
@@ -1121,41 +971,27 @@
                         <div class="progress-card">
                             <h3><i class="fas fa-list-check"></i> Current Learning Path</h3>
                             <ul class="module-list" id="module-list">
-                                <li class="module-item completed">
+                                <li class="module-item completed" data-module="fundamentals-1">
                                     <span>1. Cybersecurity Fundamentals</span>
                                     <span class="badge badge-completed">Completed</span>
                                 </li>
-                                <li class="module-item completed">
+                                <li class="module-item completed" data-module="fundamentals-2">
                                     <span>2. Network Security Basics</span>
                                     <span class="badge badge-completed">Completed</span>
                                 </li>
-                                <li class="module-item current">
+                                <li class="module-item current" data-module="fundamentals-3">
                                     <span>3. Web Application Security</span>
                                     <span class="badge badge-current">In Progress</span>
                                 </li>
-                                <li class="module-item">
+                                <li class="module-item" data-module="fundamentals-4">
                                     <span>4. Introduction to Cryptography</span>
                                     <span class="badge badge-locked">Locked</span>
                                 </li>
-                                <li class="module-item">
+                                <li class="module-item" data-module="fundamentals-5">
                                     <span>5. Penetration Testing Fundamentals</span>
                                     <span class="badge badge-locked">Locked</span>
                                 </li>
                             </ul>
-                        </div>
-                        
-                        <div class="progress-card">
-                            <h3><i class="fas fa-trophy"></i> Your Achievements</h3>
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; text-align: center;">
-                                    <i class="fas fa-shield-alt" style="color: var(--cyber-blue); font-size: 1.5rem;"></i>
-                                    <p style="margin: 5px 0 0; font-size: 0.8rem;">Security Novice</p>
-                                </div>
-                                <div style="background: #fff3cd; padding: 10px; border-radius: 5px; text-align: center;">
-                                    <i class="fas fa-network-wired" style="color: #ffc107; font-size: 1.5rem;"></i>
-                                    <p style="margin: 5px 0 0; font-size: 0.8rem;">Network Explorer</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
                     
@@ -1183,7 +1019,7 @@
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
                                 <h4 style="margin-bottom: 10px;">Password Cracking Challenge</h4>
                                 <p style="font-size: 0.9rem; margin-bottom: 15px;">Crack 5 password hashes using John the Ripper</p>
-                                <button class="btn btn-primary" style="width: 100%;">Start Challenge</button>
+                                <button class="btn btn-primary" style="width: 100%;" onclick="startChallenge('password-cracking')">Start Challenge</button>
                             </div>
                         </div>
                     </div>
@@ -1218,28 +1054,6 @@
                                 </button>
                             </div>
                         </div>
-                        
-                        <div class="progress-card">
-                            <h3><i class="fas fa-tools"></i> Practice Labs</h3>
-                            <ul style="list-style: none;">
-                                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                                    <strong>Wireshark Network Analysis</strong>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Analyze real network traffic</p>
-                                </li>
-                                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                                    <strong>Burp Suite Web Testing</strong>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Practice web app security testing</p>
-                                </li>
-                                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                                    <strong>Metasploit Framework</strong>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Learn exploitation techniques</p>
-                                </li>
-                                <li style="padding: 10px 0;">
-                                    <strong>Docker Security Scanning</strong>
-                                    <p style="font-size: 0.9rem; color: var(--secondary);">Container security assessment</p>
-                                </li>
-                            </ul>
-                        </div>
                     </div>
                     
                     <div>
@@ -1272,146 +1086,64 @@
                     <p>Test your skills with real-world scenarios and practical exercises</p>
                 </div>
                 
-                <div class="challenges-grid">
-                    <div class="challenge-card challenge-devsecops">
-                        <div class="challenge-img">
-                            <i class="fas fa-code-branch"></i>
-                        </div>
-                        <div class="challenge-content">
-                            <span class="challenge-difficulty difficulty-intermediate">Intermediate</span>
+                <div class="paths-container">
+                    <div class="path-card challenge-devsecops">
+                        <div class="path-header">
                             <h3>CI/CD Pipeline Security</h3>
+                            <p>DevSecOps Challenge</p>
+                        </div>
+                        <div class="path-body">
                             <p>Identify and fix security vulnerabilities in a Jenkins pipeline configuration.</p>
-                            <button class="btn btn-outline start-challenge-btn" data-challenge="cicd" style="margin-top: 1rem; border-color: var(--devsecops); color: var(--devsecops);">Start Challenge</button>
-                        </div>
-                    </div>
-                    <div class="challenge-card challenge-ai">
-                        <div class="challenge-img">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <div class="challenge-content">
-                            <span class="challenge-difficulty difficulty-advanced">Advanced</span>
-                            <h3>Adversarial AI Attack</h3>
-                            <p>Create adversarial examples to fool an image classification model and then defend against them.</p>
-                            <button class="btn btn-outline start-challenge-btn" data-challenge="ai" style="margin-top: 1rem; border-color: var(--ai-security); color: var(--ai-security);">Start Challenge</button>
-                        </div>
-                    </div>
-                    <div class="challenge-card challenge-network">
-                        <div class="challenge-img">
-                            <i class="fas fa-network-wired"></i>
-                        </div>
-                        <div class="challenge-content">
-                            <span class="challenge-difficulty difficulty-beginner">Beginner</span>
-                            <h3>Network Traffic Analysis</h3>
-                            <p>Analyze a packet capture file to identify malicious activity and data exfiltration attempts.</p>
-                            <button class="btn btn-outline start-challenge-btn" data-challenge="network" style="margin-top: 1rem; border-color: var(--cyber-blue); color: var(--cyber-blue);">Start Challenge</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 3rem;">
-                    <h3 style="text-align: center; margin-bottom: 2rem;">Weekly CTF Challenges</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                            <h4>Web Application CTF</h4>
-                            <p style="font-size: 0.9rem; margin: 10px 0;">Find and exploit vulnerabilities in a custom web app</p>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;">Join Challenge</button>
-                        </div>
-                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                            <h4>Forensics Challenge</h4>
-                            <p style="font-size: 0.9rem; margin: 10px 0;">Analyze disk images and memory dumps for evidence</p>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;">Join Challenge</button>
-                        </div>
-                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                            <h4>Crypto Challenge</h4>
-                            <p style="font-size: 0.9rem; margin: 10px 0;">Break various encryption schemes and ciphers</p>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;">Join Challenge</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Community Section -->
-        <section id="community-section" style="display: none;">
-            <div class="container">
-                <div class="section-title">
-                    <h2>Cybersecurity Community</h2>
-                    <p>Connect, learn, and grow with fellow cybersecurity enthusiasts</p>
-                </div>
-                
-                <div class="community-content">
-                    <div>
-                        <h3>Join the Conversation</h3>
-                        <p>Our community is the heart of CyberSec Academy. Connect with thousands of students, professionals, and experts who are passionate about cybersecurity.</p>
-                        
-                        <div style="margin-top: 2rem;">
-                            <h4>Community Features:</h4>
-                            <ul style="list-style: none; margin-top: 1rem;">
-                                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                                    <i class="fas fa-comments" style="color: var(--cyber-accent); margin-right: 10px;"></i>
-                                    <strong>Discussion Forums</strong> - Ask questions and share knowledge
-                                </li>
-                                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                                    <i class="fas fa-users" style="color: var(--cyber-accent); margin-right: 10px;"></i>
-                                    <strong>Study Groups</strong> - Collaborate on learning and projects
-                                </li>
-                                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                                    <i class="fas fa-chalkboard-teacher" style="color: var(--cyber-accent); margin-right: 10px;"></i>
-                                    <strong>Expert Q&A</strong> - Live sessions with industry professionals
-                                </li>
-                                <li style="padding: 10px 0;">
-                                    <i class="fas fa-code" style="color: var(--cyber-accent); margin-right: 10px;"></i>
-                                    <strong>Project Collaboration</strong> - Work on real-world security projects
-                                </li>
+                            <ul>
+                                <li><i class="fas fa-clock"></i> Estimated time: 45 minutes</li>
+                                <li><i class="fas fa-signal"></i> Difficulty: Intermediate</li>
+                                <li><i class="fas fa-tools"></i> Tools: Jenkins, Docker, Snyk</li>
                             </ul>
                         </div>
-                        
-                        <div class="community-stats">
-                            <div class="stat">
-                                <i class="fas fa-users"></i>
-                                <h3>15,000+</h3>
-                                <p>Active Members</p>
-                            </div>
-                            <div class="stat">
-                                <i class="fas fa-comment-dots"></i>
-                                <h3>24,500+</h3>
-                                <p>Discussions</p>
-                            </div>
-                            <div class="stat">
-                                <i class="fas fa-user-tie"></i>
-                                <h3>450+</h3>
-                                <p>Industry Experts</p>
-                            </div>
-                            <div class="stat">
-                                <i class="fas fa-hands-helping"></i>
-                                <h3>8,200+</h3>
-                                <p>Problems Solved</p>
-                            </div>
+                        <div class="path-footer">
+                            <button class="btn btn-devsecops" onclick="startChallenge('cicd')">Start Challenge</button>
                         </div>
                     </div>
-                    <div>
-                        <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
-                            <h3 style="margin-bottom: 1.5rem; color: var(--cyber-dark);">Community Forum</h3>
-                            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                                <h4 style="color: var(--cyber-blue);">Best practices for securing ML models in production?</h4>
-                                <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>AI_Security_Pro</strong> · 36 comments</p>
-                            </div>
-                            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                                <h4 style="color: var(--devsecops);">Implementing security gates in GitLab CI/CD pipeline</h4>
-                                <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>DevSecExpert</strong> · 28 comments</p>
-                            </div>
-                            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                                <h4 style="color: var(--ai-security);">Detecting adversarial attacks on computer vision systems</h4>
-                                <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>ML_Defender</strong> · 42 comments</p>
-                            </div>
-                            <div style="margin-bottom: 1.5rem;">
-                                <h4 style="color: var(--cyber-dark);">Career advice: Transitioning from IT to cybersecurity</h4>
-                                <p style="font-size: 0.9rem; color: var(--secondary);">Posted by <strong>CareerChanger</strong> · 57 comments</p>
-                            </div>
-                            <button class="btn btn-primary" id="join-community-btn" style="width: 100%;">Join Community Forum</button>
+                    
+                    <div class="path-card challenge-ai">
+                        <div class="path-header">
+                            <h3>Adversarial AI Attack</h3>
+                            <p>AI Security Challenge</p>
+                        </div>
+                        <div class="path-body">
+                            <p>Create adversarial examples to fool an image classification model and then defend against them.</p>
+                            <ul>
+                                <li><i class="fas fa-clock"></i> Estimated time: 60 minutes</li>
+                                <li><i class="fas fa-signal"></i> Difficulty: Advanced</li>
+                                <li><i class="fas fa-tools"></i> Tools: TensorFlow, PyTorch</li>
+                            </ul>
+                        </div>
+                        <div class="path-footer">
+                            <button class="btn btn-ai" onclick="startChallenge('ai')">Start Challenge</button>
+                        </div>
+                    </div>
+                    
+                    <div class="path-card challenge-network">
+                        <div class="path-header">
+                            <h3>Network Traffic Analysis</h3>
+                            <p>Network Security Challenge</p>
+                        </div>
+                        <div class="path-body">
+                            <p>Analyze a packet capture file to identify malicious activity and data exfiltration attempts.</p>
+                            <ul>
+                                <li><i class="fas fa-clock"></i> Estimated time: 30 minutes</li>
+                                <li><i class="fas fa-signal"></i> Difficulty: Beginner</li>
+                                <li><i class="fas fa-tools"></i> Tools: Wireshark, tcpdump</li>
+                            </ul>
+                        </div>
+                        <div class="path-footer">
+                            <button class="btn btn-primary" onclick="startChallenge('network')">Start Challenge</button>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Challenge content area -->
+                <div id="challenge-content-area"></div>
             </div>
         </section>
     </main>
@@ -1437,19 +1169,9 @@
                     <h3>Resources</h3>
                     <ul>
                         <li><a href="#" data-nav="challenges">Challenges</a></li>
-                        <li><a href="#" data-nav="community">Community</a></li>
+                        <li><a href="#" data-nav="home">Interactive Lab</a></li>
                         <li><a href="#">Tools Directory</a></li>
                         <li><a href="#">Career Guide</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Connect</h3>
-                    <ul>
-                        <li><a href="#"><i class="fab fa-discord"></i> Discord</a></li>
-                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
-                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
-                        <li><a href="#"><i class="fab fa-github"></i> GitHub</a></li>
-                        <li><a href="#"><i class="fas fa-envelope"></i> Newsletter</a></li>
                     </ul>
                 </div>
             </div>
@@ -1464,7 +1186,7 @@
         <!-- Fundamentals Module 1 -->
         <div id="fundamentals-module-1" class="learning-content">
             <div class="content-header">
-                <h2>Cybersecurity Fundamentals: Module 1</h2>
+                <h2>Module 1: Cybersecurity Fundamentals</h2>
                 <p>Understanding the Cybersecurity Landscape</p>
             </div>
             <div class="content-body">
@@ -1480,14 +1202,32 @@
                         <li>DDoS Attack</li>
                         <li>SQL Injection</li>
                     </ol>
-                    <p>Descriptions:</p>
-                    <ul>
-                        <li>A. Malicious software designed to harm computer systems</li>
-                        <li>B. Flooding a server with traffic to make it unavailable</li>
-                        <li>C. Tricking users into revealing sensitive information</li>
-                        <li>D. Injecting malicious code into database queries</li>
-                    </ul>
-                    <button class="btn btn-primary" onclick="checkExercise(this)">Check Answers</button>
+                    <p>Drag the descriptions to match the threats:</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0;">
+                        <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 5px;" data-answer="phishing">
+                            <strong>Phishing</strong>
+                            <div class="drop-zone" data-target="phishing"></div>
+                        </div>
+                        <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 5px;" data-answer="malware">
+                            <strong>Malware</strong>
+                            <div class="drop-zone" data-target="malware"></div>
+                        </div>
+                        <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 5px;" data-answer="ddos">
+                            <strong>DDoS Attack</strong>
+                            <div class="drop-zone" data-target="ddos"></div>
+                        </div>
+                        <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 5px;" data-answer="sql">
+                            <strong>SQL Injection</strong>
+                            <div class="drop-zone" data-target="sql"></div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0;">
+                        <div class="draggable" draggable="true" data-value="phishing" style="background: #e7f3ff; padding: 10px; border-radius: 5px; cursor: move;">Tricking users into revealing sensitive information</div>
+                        <div class="draggable" draggable="true" data-value="malware" style="background: #e7f3ff; padding: 10px; border-radius: 5px; cursor: move;">Malicious software designed to harm computer systems</div>
+                        <div class="draggable" draggable="true" data-value="ddos" style="background: #e7f3ff; padding: 10px; border-radius: 5px; cursor: move;">Flooding a server with traffic to make it unavailable</div>
+                        <div class="draggable" draggable="true" data-value="sql" style="background: #e7f3ff; padding: 10px; border-radius: 5px; cursor: move;">Injecting malicious code into database queries</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="checkDragExercise(this)">Check Answers</button>
                 </div>
                 
                 <h3>Key Cybersecurity Concepts</h3>
@@ -1500,10 +1240,11 @@
                 
                 <div class="code-block">
                     <pre><code class="bash">
-# Example: Basic security check command
+# Example: Basic security check commands
 whoami                    # Check current user
 netstat -tuln             # Check open ports
 ps aux                    # View running processes
+systemctl status ssh      # Check SSH service status
                     </code></pre>
                 </div>
                 
@@ -1516,51 +1257,290 @@ ps aux                    # View running processes
                         <li onclick="selectAnswer(this)">Cyber Incident Assessment</li>
                         <li onclick="selectAnswer(this)">Computer Information Assurance</li>
                     </ul>
-                    <button class="btn btn-primary" onclick="checkQuiz(this)">Submit Answer</button>
+                    <button class="btn btn-primary" onclick="checkQuiz(this, 1)">Submit Answer</button>
                 </div>
             </div>
             <div class="content-footer">
-                <button class="btn btn-outline" onclick="previousModule()">Previous</button>
-                <button class="btn btn-primary" onclick="nextModule()">Next Module</button>
+                <button class="btn btn-outline" onclick="previousModule('fundamentals')">Previous</button>
+                <button class="btn btn-primary" onclick="nextModule('fundamentals', 1)">Next Module</button>
             </div>
         </div>
-        
-        <!-- Network Security Module -->
-        <div id="network-module-1" class="learning-content">
+
+        <!-- Fundamentals Module 2 -->
+        <div id="fundamentals-module-2" class="learning-content">
             <div class="content-header">
-                <h2>Network Security: Module 1</h2>
-                <p>Network Fundamentals and Security Principles</p>
+                <h2>Module 2: Network Security Basics</h2>
+                <p>Understanding Network Protocols and Security</p>
             </div>
             <div class="content-body">
-                <h3>Understanding Network Protocols</h3>
-                <p>Network protocols are established rules that determine how data is transmitted between devices. Key protocols include:</p>
-                <ul>
-                    <li><strong>TCP/IP:</strong> The fundamental communication protocol of the internet</li>
-                    <li><strong>HTTP/HTTPS:</strong> Protocols for web browsing (HTTPS adds encryption)</li>
-                    <li><strong>DNS:</strong> Translates domain names to IP addresses</li>
-                    <li><strong>SSH:</strong> Secure protocol for remote access to systems</li>
-                </ul>
+                <h3>Network Protocols and Security</h3>
+                <p>Network protocols are established rules that determine how data is transmitted between devices. Understanding these protocols is essential for securing network communications.</p>
                 
                 <div class="exercise">
-                    <h4><i class="fas fa-network-wired"></i> Exercise: Basic Network Scanning</h4>
-                    <p>Use the following Nmap command to scan a network:</p>
+                    <h4><i class="fas fa-network-wired"></i> Exercise: Network Scanning with Nmap</h4>
+                    <p>Use the following Nmap commands to practice network scanning:</p>
                     <div class="code-block">
                         <pre><code class="bash">
+# Basic network scan
 nmap -sS 192.168.1.0/24
+
+# Service version detection
+nmap -sV 192.168.1.1
+
+# OS detection
+nmap -O 192.168.1.1
+
+# Aggressive scan
+nmap -A 192.168.1.1
                         </code></pre>
                     </div>
-                    <p>This command performs a SYN scan on the 192.168.1.0/24 network. Try it in your lab environment and document:</p>
+                    <p>Practice these commands in the Interactive Lab on the homepage and answer:</p>
                     <ol>
-                        <li>How many hosts are online</li>
-                        <li>What services are running on each host</li>
-                        <li>Which ports are open</li>
+                        <li>What is the difference between -sS and -sV scans?</li>
+                        <li>Which flag would you use to detect the operating system?</li>
+                        <li>What does the -A flag do in Nmap?</li>
                     </ol>
-                    <button class="btn btn-primary" onclick="checkExercise(this)">Complete Exercise</button>
+                    <div class="challenge-hint">
+                        <strong>Hint:</strong> The -sS flag performs a SYN scan (stealth), while -sV detects service versions.
+                    </div>
+                    <button class="btn btn-primary" onclick="completeExercise(this)">Mark Complete</button>
+                </div>
+                
+                <h3>Common Network Attacks</h3>
+                <p>Understanding common network attacks helps in developing effective defenses:</p>
+                <ul>
+                    <li><strong>Man-in-the-Middle (MitM):</strong> Intercepting communications between two parties</li>
+                    <li><strong>DNS Spoofing:</strong> Corrupting DNS cache to redirect traffic</li>
+                    <li><strong>ARP Poisoning:</strong> Manipulating ARP tables to redirect traffic</li>
+                    <li><strong>Port Scanning:</strong> Identifying open ports and services</li>
+                </ul>
+                
+                <div class="quiz-question">
+                    <h4>Security Scenario</h4>
+                    <p>You notice unusual network traffic from an internal IP address. The traffic shows repeated connection attempts to various ports on multiple servers. What type of attack is most likely occurring?</p>
+                    <ul class="quiz-options">
+                        <li onclick="selectAnswer(this)">Phishing Attack</li>
+                        <li onclick="selectAnswer(this)">DDoS Attack</li>
+                        <li onclick="selectAnswer(this)">Port Scanning</li>
+                        <li onclick="selectAnswer(this)">SQL Injection</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="checkQuiz(this, 2)">Submit Answer</button>
                 </div>
             </div>
             <div class="content-footer">
-                <button class="btn btn-outline" onclick="previousModule()">Previous</button>
-                <button class="btn btn-primary" onclick="nextModule()">Next Module</button>
+                <button class="btn btn-outline" onclick="previousModule('fundamentals')">Previous</button>
+                <button class="btn btn-primary" onclick="nextModule('fundamentals', 2)">Next Module</button>
+            </div>
+        </div>
+
+        <!-- CI/CD Challenge -->
+        <div id="cicd-challenge" class="challenge-section">
+            <div class="content-header">
+                <h2>CI/CD Pipeline Security Challenge</h2>
+                <p>Identify and fix security vulnerabilities in a Jenkins pipeline</p>
+            </div>
+            <div class="content-body">
+                <div class="challenge-instructions">
+                    <h3><i class="fas fa-info-circle"></i> Challenge Instructions</h3>
+                    <p>You've been given a Jenkins pipeline configuration that contains several security vulnerabilities. Your task is to identify and fix these vulnerabilities to make the pipeline secure.</p>
+                    <ul>
+                        <li><strong>Time:</strong> 45 minutes</li>
+                        <li><strong>Difficulty:</strong> Intermediate</li>
+                        <li><strong>Tools:</strong> Jenkins, Docker, Snyk</li>
+                    </ul>
+                </div>
+
+                <div class="challenge-task">
+                    <h4><i class="fas fa-tasks"></i> Your Tasks</h4>
+                    <ol>
+                        <li>Identify hardcoded credentials in the pipeline</li>
+                        <li>Fix insecure Docker image usage</li>
+                        <li>Implement proper secret management</li>
+                        <li>Add security scanning steps</li>
+                        <li>Ensure proper access controls</li>
+                    </ol>
+                </div>
+
+                <div class="exercise">
+                    <h4><i class="fas fa-code"></i> Vulnerable Jenkinsfile</h4>
+                    <p>Review this Jenkinsfile and identify the security issues:</p>
+                    <div class="code-block">
+                        <pre><code class="groovy">
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY = 'AKIAIOSFODNN7EXAMPLE'
+        AWS_SECRET_KEY = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+        DOCKER_PASSWORD = 'mypassword123'
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'docker build -t myapp:latest .'
+                sh 'docker run --privileged myapp:latest'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'npm test'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'docker push myapp:latest'
+                sh 'curl -X POST http://prod-server/deploy -d "image=myapp:latest"'
+            }
+        }
+    }
+}
+                        </code></pre>
+                    </div>
+                </div>
+
+                <div class="challenge-hint">
+                    <h4><i class="fas fa-lightbulb"></i> Security Issues to Look For</h4>
+                    <ul>
+                        <li>Hardcoded credentials in environment variables</li>
+                        <li>Use of privileged Docker containers</li>
+                        <li>Lack of image scanning</li>
+                        <li>Insecure deployment methods</li>
+                        <li>Missing access controls</li>
+                    </ul>
+                </div>
+
+                <div class="exercise">
+                    <h4><i class="fas fa-edit"></i> Fix the Jenkinsfile</h4>
+                    <p>Rewrite the Jenkinsfile to address the security issues:</p>
+                    <div class="challenge-editor">
+                        <div class="editor-header">Secure_Jenkinsfile</div>
+                        <div class="editor-body" contenteditable="true" style="min-height: 300px;">
+pipeline {
+    agent any
+    environment {
+        // Use Jenkins credentials store instead of hardcoded values
+    }
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    // Add security scanning here
+                }
+                sh 'docker build -t myapp:latest .'
+                // Remove privileged flag and use specific capabilities
+            }
+        }
+        stage('Security Scan') {
+            steps {
+                // Add container security scanning
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'npm test'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                // Use secure deployment methods
+            }
+        }
+    }
+}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitChallengeSolution('cicd')">Submit Solution</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Security Challenge -->
+        <div id="ai-challenge" class="challenge-section">
+            <div class="content-header">
+                <h2>Adversarial AI Attack Challenge</h2>
+                <p>Create and defend against adversarial machine learning attacks</p>
+            </div>
+            <div class="content-body">
+                <div class="challenge-instructions">
+                    <h3><i class="fas fa-info-circle"></i> Challenge Instructions</h3>
+                    <p>In this challenge, you'll work with an image classification model to understand adversarial attacks and implement defenses.</p>
+                    <ul>
+                        <li><strong>Time:</strong> 60 minutes</li>
+                        <li><strong>Difficulty:</strong> Advanced</li>
+                        <li><strong>Tools:</strong> TensorFlow, PyTorch, Adversarial Robustness Toolbox</li>
+                    </ul>
+                </div>
+
+                <div class="exercise">
+                    <h4><i class="fas fa-brain"></i> Part 1: Create Adversarial Examples</h4>
+                    <p>Use this Python code to create adversarial examples that fool the classifier:</p>
+                    <div class="code-block">
+                        <pre><code class="python">
+import tensorflow as tf
+import numpy as np
+from art.attacks.evasion import FastGradientMethod
+from art.classifiers import TensorFlowV2Classifier
+
+# Load pre-trained model
+model = tf.keras.applications.ResNet50(weights='imagenet')
+
+# Create classifier wrapper
+classifier = TensorFlowV2Classifier(
+    model=model,
+    nb_classes=1000,
+    input_shape=(224, 224, 3)
+)
+
+# Create adversarial examples
+attack = FastGradientMethod(estimator=classifier, eps=0.3)
+adversarial_images = attack.generate(x_original)
+
+# Test attack success
+predictions_original = model.predict(x_original)
+predictions_adversarial = model.predict(adversarial_images)
+                        </code></pre>
+                    </div>
+                    <p><strong>Task:</strong> Modify the epsilon (eps) value and observe how it affects the attack success rate.</p>
+                </div>
+
+                <div class="exercise">
+                    <h4><i class="fas fa-shield-alt"></i> Part 2: Implement Defense</h4>
+                    <p>Add adversarial training to make the model more robust:</p>
+                    <div class="code-block">
+                        <pre><code class="python">
+# Adversarial training function
+def adversarial_training(model, x_train, y_train, epochs=10):
+    for epoch in range(epochs):
+        # Generate adversarial examples
+        adversarial_x = attack.generate(x_train)
+        
+        # Combine original and adversarial data
+        combined_x = np.concatenate([x_train, adversarial_x])
+        combined_y = np.concatenate([y_train, y_train])
+        
+        # Train on combined dataset
+        model.fit(combined_x, combined_y, epochs=1, verbose=0)
+        
+    return model
+
+# Implement your defense here:
+defense_model = adversarial_training(model, x_train, y_train)
+                        </code></pre>
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <h4>AI Security Knowledge Check</h4>
+                    <p>Which of the following is NOT a common defense against adversarial attacks?</p>
+                    <ul class="quiz-options">
+                        <li onclick="selectAnswer(this)">Adversarial Training</li>
+                        <li onclick="selectAnswer(this)">Feature Squeezing</li>
+                        <li onclick="selectAnswer(this)">Gradient Masking</li>
+                        <li onclick="selectAnswer(this)">Data Augmentation with random crops</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="checkQuiz(this, 3)">Submit Answer</button>
+                </div>
+
+                <button class="btn btn-success" onclick="completeChallenge('ai')">Complete Challenge</button>
             </div>
         </div>
     </div>
@@ -1568,7 +1548,22 @@ nmap -sS 192.168.1.0/24
     <script>
         // Initialize syntax highlighting
         hljs.highlightAll();
-        
+
+        // Application State
+        const appState = {
+            currentUser: null,
+            progress: {
+                fundamentals: { completed: [1], current: 2, total: 5 },
+                network: { completed: [], current: 0, total: 4 },
+                devsecops: { completed: [], current: 0, total: 6 },
+                ai: { completed: [], current: 0, total: 5 }
+            },
+            challenges: {
+                completed: [],
+                inProgress: []
+            }
+        };
+
         // Navigation system
         document.querySelectorAll('[data-nav]').forEach(link => {
             link.addEventListener('click', function(e) {
@@ -1591,7 +1586,78 @@ nmap -sS 192.168.1.0/24
                 }
             });
         });
-        
+
+        // Authentication system
+        document.getElementById('login-btn').addEventListener('click', function() {
+            document.getElementById('auth-modal').classList.add('active');
+        });
+
+        document.getElementById('signup-btn').addEventListener('click', function() {
+            document.getElementById('auth-modal').classList.add('active');
+            switchAuthTab('signup');
+        });
+
+        // Auth tabs
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                switchAuthTab(tabName);
+            });
+        });
+
+        function switchAuthTab(tabName) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`${tabName}-form`).classList.add('active');
+        }
+
+        // Login functionality
+        document.getElementById('do-login').addEventListener('click', function() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (email && password) {
+                appState.currentUser = { email: email };
+                document.getElementById('auth-modal').classList.remove('active');
+                updateUIForUser();
+                alert('Successfully logged in!');
+            } else {
+                alert('Please enter both email and password.');
+            }
+        });
+
+        // Signup functionality
+        document.getElementById('do-signup').addEventListener('click', function() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            
+            if (email && password && confirm) {
+                if (password === confirm) {
+                    appState.currentUser = { email: email };
+                    document.getElementById('auth-modal').classList.remove('active');
+                    updateUIForUser();
+                    alert('Account created successfully!');
+                } else {
+                    alert('Passwords do not match.');
+                }
+            } else {
+                alert('Please fill in all fields.');
+            }
+        });
+
+        function updateUIForUser() {
+            if (appState.currentUser) {
+                document.getElementById('login-btn').style.display = 'none';
+                document.getElementById('signup-btn').textContent = 'My Account';
+                document.getElementById('signup-btn').onclick = function() {
+                    alert(`Logged in as: ${appState.currentUser.email}`);
+                };
+            }
+        }
+
         // Learning path selection
         document.querySelectorAll('.start-path-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -1600,40 +1666,31 @@ nmap -sS 192.168.1.0/24
                 showLearningPath(path);
             });
         });
-        
-        // Challenge buttons
-        document.querySelectorAll('.start-challenge-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const challenge = this.getAttribute('data-challenge');
-                document.querySelector('[data-nav="challenges"]').click();
-                startChallenge(challenge);
-            });
-        });
-        
-        // Show learning path content
+
         function showLearningPath(path) {
             const contentArea = document.getElementById('learning-content-area');
             
-            // In a real application, this would fetch content from a server
-            // For this demo, we'll use simple templates
             if (path === 'fundamentals') {
-                contentArea.innerHTML = document.getElementById('fundamentals-module-1').outerHTML;
-                document.getElementById('fundamentals-module-1').classList.add('active');
-            } else if (path === 'network') {
-                contentArea.innerHTML = document.getElementById('network-module-1').outerHTML;
-                document.getElementById('network-module-1').classList.add('active');
+                // Show fundamentals modules
+                const currentModule = appState.progress.fundamentals.current;
+                if (currentModule === 0) {
+                    contentArea.innerHTML = document.getElementById('fundamentals-module-1').outerHTML;
+                } else {
+                    contentArea.innerHTML = document.getElementById(`fundamentals-module-${currentModule}`).outerHTML;
+                }
+                setupDragAndDrop();
             } else {
                 contentArea.innerHTML = `
                     <div class="progress-card">
-                        <h3><i class="fas fa-${path === 'devsecops' ? 'code-branch' : 'robot'}"></i> ${path === 'devsecops' ? 'DevSecOps' : 'AI Security'} Learning Path</h3>
+                        <h3><i class="fas fa-${path === 'devsecops' ? 'code-branch' : path === 'ai' ? 'robot' : 'network-wired'}"></i> ${path === 'devsecops' ? 'DevSecOps' : path === 'ai' ? 'AI Security' : 'Network Security'} Learning Path</h3>
                         <p>This learning path is coming soon! In the meantime, you can:</p>
                         <ul style="margin-top: 1rem;">
                             <li>Complete the Cybersecurity Fundamentals path</li>
                             <li>Practice with our interactive challenges</li>
-                            <li>Join the community discussion on ${path === 'devsecops' ? 'DevSecOps' : 'AI Security'}</li>
+                            <li>Explore the ${path === 'devsecops' ? 'CI/CD Pipeline Security' : path === 'ai' ? 'Adversarial AI Attack' : 'Network Traffic Analysis'} challenge</li>
                         </ul>
-                        <button class="btn btn-${path === 'devsecops' ? 'devsecops' : 'ai'}" style="margin-top: 1rem;" onclick="document.querySelector('[data-nav=\\'community\\']').click()">
-                            Join ${path === 'devsecops' ? 'DevSecOps' : 'AI Security'} Discussion
+                        <button class="btn btn-${path === 'devsecops' ? 'devsecops' : path === 'ai' ? 'ai' : 'primary'}" style="margin-top: 1rem;" onclick="startChallenge('${path}')">
+                            Try ${path === 'devsecops' ? 'CI/CD' : path === 'ai' ? 'AI Security' : 'Network'} Challenge
                         </button>
                     </div>
                 `;
@@ -1642,13 +1699,152 @@ nmap -sS 192.168.1.0/24
             // Re-initialize syntax highlighting for any code blocks
             hljs.highlightAll();
         }
-        
-        // Start a challenge
-        function startChallenge(challenge) {
-            alert(`Starting ${challenge} challenge! In a full implementation, this would launch an interactive lab environment.`);
-            // In a real application, this would redirect to a challenge page or load challenge content
+
+        // Module navigation
+        function nextModule(path, currentModule) {
+            if (path === 'fundamentals') {
+                const nextModule = currentModule + 1;
+                if (nextModule <= 5) {
+                    appState.progress.fundamentals.current = nextModule;
+                    if (!appState.progress.fundamentals.completed.includes(currentModule)) {
+                        appState.progress.fundamentals.completed.push(currentModule);
+                    }
+                    showLearningPath('fundamentals');
+                    updateProgressBar();
+                } else {
+                    alert('Congratulations! You have completed the Fundamentals path!');
+                }
+            }
         }
-        
+
+        function previousModule(path) {
+            if (path === 'fundamentals') {
+                const currentModule = appState.progress.fundamentals.current;
+                if (currentModule > 1) {
+                    appState.progress.fundamentals.current = currentModule - 1;
+                    showLearningPath('fundamentals');
+                }
+            }
+        }
+
+        // Challenge system
+        function startChallenge(challengeType) {
+            document.querySelector('[data-nav="challenges"]').click();
+            const contentArea = document.getElementById('challenge-content-area');
+            
+            if (challengeType === 'cicd') {
+                contentArea.innerHTML = document.getElementById('cicd-challenge').outerHTML;
+                document.getElementById('cicd-challenge').classList.add('active');
+            } else if (challengeType === 'ai') {
+                contentArea.innerHTML = document.getElementById('ai-challenge').outerHTML;
+                document.getElementById('ai-challenge').classList.add('active');
+            } else if (challengeType === 'network') {
+                contentArea.innerHTML = `
+                    <div class="challenge-section active">
+                        <div class="content-header">
+                            <h2>Network Traffic Analysis Challenge</h2>
+                            <p>Analyze packet captures to identify security threats</p>
+                        </div>
+                        <div class="content-body">
+                            <div class="challenge-instructions">
+                                <h3><i class="fas fa-info-circle"></i> Challenge Instructions</h3>
+                                <p>You've been provided with a packet capture file containing network traffic. Analyze it to identify potential security threats.</p>
+                                <ul>
+                                    <li><strong>Time:</strong> 30 minutes</li>
+                                    <li><strong>Difficulty:</strong> Beginner</li>
+                                    <li><strong>Tools:</strong> Wireshark, tcpdump</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="exercise">
+                                <h4><i class="fas fa-search"></i> Analyze the Packet Capture</h4>
+                                <p>Download the sample packet capture file and analyze it using Wireshark:</p>
+                                <div class="code-block">
+                                    <pre><code class="bash">
+# Download the sample pcap
+wget https://example.com/sample-traffic.pcap
+
+# Open in Wireshark
+wireshark sample-traffic.pcap
+
+# Or use tcpdump to analyze
+tcpdump -r sample-traffic.pcap -n
+                                    </code></pre>
+                                </div>
+                                
+                                <p><strong>Questions to answer:</strong></p>
+                                <ol>
+                                    <li>How many unique IP addresses are in the capture?</li>
+                                    <li>Are there any port scanning activities?</li>
+                                    <li>Identify any suspicious connection patterns</li>
+                                    <li>What protocols are being used most frequently?</li>
+                                </ol>
+                            </div>
+                            
+                            <button class="btn btn-success" onclick="completeChallenge('network')">Complete Challenge</button>
+                        </div>
+                    </div>
+                `;
+            } else if (challengeType === 'password-cracking') {
+                contentArea.innerHTML = `
+                    <div class="challenge-section active">
+                        <div class="content-header">
+                            <h2>Password Cracking Challenge</h2>
+                            <p>Use John the Ripper to crack password hashes</p>
+                        </div>
+                        <div class="content-body">
+                            <div class="exercise">
+                                <h4><i class="fas fa-key"></i> Password Hashes to Crack</h4>
+                                <p>Here are 5 password hashes. Use John the Ripper to crack them:</p>
+                                <div class="code-block">
+                                    <pre><code>
+1. 5f4dcc3b5aa765d61d8327deb882cf99  (MD5)
+2. e10adc3949ba59abbe56e057f20f883e  (MD5)  
+3. 25d55ad283aa400af464c76d713c07ad  (MD5)
+4. 482c811da5d5b4bc6d497ffa98491e38  (MD5)
+5. 5e884898da28047151d0e56f8dc62927  (MD5)
+                                    </code></pre>
+                                </div>
+                                
+                                <p>Use this command to crack the hashes:</p>
+                                <div class="code-block">
+                                    <pre><code class="bash">
+# Save hashes to a file
+echo "5f4dcc3b5aa765d61d8327deb882cf99" > hashes.txt
+echo "e10adc3949ba59abbe56e057f20f883e" >> hashes.txt
+echo "25d55ad283aa400af464c76d713c07ad" >> hashes.txt
+echo "482c811da5d5b4bc6d497ffa98491e38" >> hashes.txt  
+echo "5e884898da28047151d0e56f8dc62927" >> hashes.txt
+
+# Crack with John the Ripper
+john --format=raw-md5 --wordlist=/usr/share/wordlists/rockyou.txt hashes.txt
+                                    </code></pre>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-success" onclick="completeChallenge('password-cracking')">I've Cracked the Passwords</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            hljs.highlightAll();
+        }
+
+        function completeChallenge(challengeName) {
+            if (!appState.challenges.completed.includes(challengeName)) {
+                appState.challenges.completed.push(challengeName);
+            }
+            alert(`Congratulations! You've completed the ${challengeName} challenge!`);
+            document.querySelector('[data-nav="dashboard"]').click();
+            updateProgressBar();
+        }
+
+        function submitChallengeSolution(challengeName) {
+            alert('Solution submitted! In a real implementation, this would be automatically graded.');
+            completeChallenge(challengeName);
+        }
+
         // Interactive lab functionality
         let commandIndex = 0;
         const commands = [
@@ -1656,7 +1852,7 @@ nmap -sS 192.168.1.0/24
             'searchsploit Apache 2.4',
             'sqlmap -u "http://testphp.vulnweb.com/artists.php?artist=1" --dbs',
             'john --wordlist=password.lst --rules hashfile.txt',
-            'metasploit console'
+            'msfconsole'
         ];
         
         const outputs = [
@@ -1747,24 +1943,75 @@ nmap -sS 192.168.1.0/24
         });
         
         document.getElementById('next-exercise').addEventListener('click', function() {
-            alert('Moving to the next exercise: Docker Container Security Analysis');
+            alert('Next exercise: Docker Container Security Analysis - Practice scanning Docker images for vulnerabilities');
         });
-        
+
         // Exercise and quiz functions
-        function checkExercise(button) {
-            button.textContent = 'Completed!';
-            button.classList.remove('btn-primary');
-            button.classList.add('btn-success');
-            button.disabled = true;
+        function setupDragAndDrop() {
+            const draggables = document.querySelectorAll('.draggable');
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', this.getAttribute('data-value'));
+                });
+            });
+            
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.style.backgroundColor = '#e9ecef';
+                });
+                
+                zone.addEventListener('dragleave', function() {
+                    this.style.backgroundColor = '';
+                });
+                
+                zone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.style.backgroundColor = '';
+                    const data = e.dataTransfer.getData('text/plain');
+                    const target = this.getAttribute('data-target');
+                    
+                    if (data === target) {
+                        this.innerHTML = `<div style="color: var(--success);">✓ ${e.dataTransfer.getData('text/plain')}</div>`;
+                        this.classList.add('correct');
+                    } else {
+                        this.innerHTML = `<div style="color: var(--danger);">✗ Incorrect</div>`;
+                        this.classList.add('incorrect');
+                    }
+                });
+            });
         }
-        
+
+        function checkDragExercise(button) {
+            const dropZones = button.parentElement.querySelectorAll('.drop-zone');
+            let allCorrect = true;
+            
+            dropZones.forEach(zone => {
+                if (!zone.classList.contains('correct')) {
+                    allCorrect = false;
+                }
+            });
+            
+            if (allCorrect) {
+                button.textContent = 'Completed! ✓';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-success');
+                button.disabled = true;
+                alert('Excellent! All matches are correct.');
+            } else {
+                alert('Some matches are incorrect. Try again!');
+            }
+        }
+
         function selectAnswer(option) {
             const options = option.parentElement.querySelectorAll('li');
             options.forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
         }
-        
-        function checkQuiz(button) {
+
+        function checkQuiz(button, correctIndex) {
             const options = button.parentElement.querySelectorAll('li');
             const selected = button.parentElement.querySelector('.selected');
             
@@ -1773,59 +2020,68 @@ nmap -sS 192.168.1.0/24
                 return;
             }
             
-            // In a real application, this would check against the correct answer
-            // For this demo, we'll assume the second option is correct
-            if (selected === options[1]) {
+            // Check if selected option is correct (correctIndex is 1-based)
+            if (selected === options[correctIndex - 1]) {
                 selected.classList.add('correct');
-                button.textContent = 'Correct!';
+                button.textContent = 'Correct! ✓';
                 button.classList.remove('btn-primary');
                 button.classList.add('btn-success');
                 button.disabled = true;
+                alert('Excellent! Your answer is correct.');
             } else {
                 selected.classList.add('incorrect');
-                options[1].classList.add('correct');
+                options[correctIndex - 1].classList.add('correct');
                 button.textContent = 'Try Again';
+                alert('Not quite right. The correct answer is highlighted.');
             }
         }
-        
-        function nextModule() {
-            alert('Moving to next module! In a full implementation, this would load the next module content.');
+
+        function completeExercise(button) {
+            button.textContent = 'Completed! ✓';
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-success');
+            button.disabled = true;
+            alert('Exercise marked as complete!');
         }
-        
-        function previousModule() {
-            alert('Moving to previous module! In a full implementation, this would load the previous module content.');
+
+        function updateProgressBar() {
+            const totalModules = 20;
+            const completedModules = appState.progress.fundamentals.completed.length + 
+                                   appState.progress.network.completed.length + 
+                                   appState.progress.devsecops.completed.length + 
+                                   appState.progress.ai.completed.length;
+            const progressPercent = (completedModules / totalModules) * 100;
+            
+            document.getElementById('overall-progress').style.width = `${progressPercent}%`;
         }
+
+        // Initialize
+        updateProgressBar();
         
-        // Authentication buttons
-        document.getElementById('login-btn').addEventListener('click', function() {
-            alert('Login functionality would be implemented here with Firebase Auth or similar service.');
+        // Demo button
+        document.getElementById('view-demo-btn').addEventListener('click', function() {
+            alert('Welcome to CyberSec Academy! This platform provides hands-on cybersecurity training with real tools and scenarios. Start with the Fundamentals learning path or try one of the challenges.');
         });
-        
-        document.getElementById('signup-btn').addEventListener('click', function() {
-            alert('Sign up functionality would be implemented here with Firebase Auth or similar service.');
-        });
-        
-        // Call-to-action buttons
+
+        // Start learning button
         document.getElementById('start-learning-btn').addEventListener('click', function() {
             document.querySelector('[data-nav="learning"]').click();
         });
-        
-        document.getElementById('view-demo-btn').addEventListener('click', function() {
-            alert('This would play a video demo of the platform in action.');
+
+        // Module click handlers
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.module-item')) {
+                const moduleItem = e.target.closest('.module-item');
+                const moduleId = moduleItem.getAttribute('data-module');
+                
+                if (moduleId && moduleId.startsWith('fundamentals')) {
+                    const moduleNum = parseInt(moduleId.split('-')[1]);
+                    appState.progress.fundamentals.current = moduleNum;
+                    showLearningPath('fundamentals');
+                }
+            }
         });
-        
-        document.getElementById('join-now-btn').addEventListener('click', function() {
-            document.getElementById('signup-btn').click();
-        });
-        
-        document.getElementById('join-forum-btn').addEventListener('click', function() {
-            document.querySelector('[data-nav="community"]').click();
-        });
-        
-        document.getElementById('join-community-btn').addEventListener('click', function() {
-            alert('Redirecting to community forum... In a real implementation, this would open the forum.');
-        });
-        
+
         // Footer navigation
         document.querySelectorAll('.footer-column a').forEach(link => {
             link.addEventListener('click', function(e) {
@@ -1837,7 +2093,13 @@ nmap -sS 192.168.1.0/24
                     document.querySelector(`[data-nav="${nav}"]`).click();
                     
                     if (path) {
-                        setTimeout(() => showLearningPath(path), 100);
+                        setTimeout(() => {
+                            if (nav === 'learning') {
+                                showLearningPath(path);
+                            } else if (nav === 'challenges') {
+                                startChallenge(path);
+                            }
+                        }, 100);
                     }
                 }
             });
