@@ -14,7 +14,9 @@
         extend: {
           colors: { brand: { DEFAULT:'#00d4ff', dark:'#0c1e3e', accent:'#8a2be2' } },
           boxShadow: { glass:'0 8px 30px rgba(2,8,23,.35)' },
-          backgroundImage: { grid:"linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)" }
+          backgroundImage: {
+            grid:"linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)"
+          }
         }
       }
     }
@@ -58,10 +60,11 @@ const __FM = window['framer-motion'] || {};
 const motion = __FM.motion || new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
 const AnimatePresence = __FM.AnimatePresence || (({children}) => React.createElement(React.Fragment, null, children));
 
-/* ===== Config (flip USE_FIREBASE true for real auth + cloud) ===== */
+/* ===== Config ===== */
 const CONFIG = {
   USE_FIREBASE: false,
   FIREBASE_CONFIG: {
+    // Fill in to enable real auth/cloud sync:
     // apiKey: "YOUR_API_KEY",
     // authDomain: "YOUR_PROJECT.firebaseapp.com",
     // projectId: "YOUR_PROJECT",
@@ -76,7 +79,6 @@ const CONFIG = {
 const { useState, useEffect, useMemo, useRef } = React;
 const cx = (...c)=>c.filter(Boolean).join(' ');
 const wait = (ms)=>new Promise(r=>setTimeout(r, ms));
-const escapeHtml = (s='')=>s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
 /* ===== Firebase / local demo auth ===== */
 const appState = { firebaseApp:null, auth:null, db:null, user:null };
@@ -110,7 +112,7 @@ async function signIn(email, password){
 async function signOut(){ if(appState.auth) await appState.auth.signOut(); appState.user=null; }
 async function saveProgress(uid,data){
   if(CONFIG.USE_FIREBASE && appState.db){
-    await appState.db.collection('users').doc(uid).set({ email: appState.user.email },{merge:true});
+    await appState.db.collection('users').doc(uid).set({ email: (appState.user||{}).email },{merge:true});
     await appState.db.collection('users').doc(uid).collection('progress').doc('main').set(data,{merge:true});
   } else localStorage.setItem(`progress_${uid}`, JSON.stringify(data));
 }
@@ -155,21 +157,28 @@ function ToolChip({name,onClick}){ return <button className="px-3 py-1 rounded-f
 function FullscreenButton({targetRef}){ const go=async()=>{const el=targetRef.current; if(!el) return; if(!document.fullscreenElement) await el.requestFullscreen?.(); else await document.exitFullscreen?.();};
   return <button onClick={go} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm"><i className="fa-solid fa-maximize mr-2"></i>Fullscreen</button>; }
 
-/* ===== Stylish explanation modal (answers) ===== */
+/* ===== Stylish explanation modal (opaque colors) ===== */
 function AnswerModal({open, correct, title, detail, onClose}){
   if(!open) return null;
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
-      <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} className={cx("rounded-2xl p-6 w-full max-w-lg border", correct? "bg-green-600/20 border-green-500/40":"bg-red-600/20 border-red-500/40")}>
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
+      <motion.div
+        initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}}
+        className={cx("rounded-2xl w-full max-w-lg border shadow-2xl",
+          correct? "border-green-400":"border-red-400")}
+        style={{backgroundColor: correct? '#136f3a' : '#7a1e1e'}}  /* fully opaque */
+      >
+        <div className="px-6 pt-5 pb-3 border-b border-white/10 flex items-center justify-between">
           <h3 className="text-xl font-bold">{correct? 'Excellent! ✅' : 'Let’s improve 💡'}</h3>
-          <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
+          <button onClick={onClose} aria-label="Close"><i className="fa-solid fa-xmark"></i></button>
         </div>
-        <div className="mt-2 font-semibold">{title}</div>
-        <div className="mt-3 text-white/90 whitespace-pre-wrap">{detail}</div>
-        <div className="mt-4 flex justify-end">
-          <button className={cx("px-4 py-2 rounded", correct? "bg-green-400 text-black":"bg-white/10")} onClick={onClose}>OK</button>
+        <div className="px-6 py-4">
+          <div className="font-semibold">{title}</div>
+          <div className="mt-3 text-white/95 whitespace-pre-wrap leading-relaxed">{detail}</div>
+        </div>
+        <div className="px-6 pb-5 flex justify-end">
+          <button className="px-4 py-2 rounded bg-white/90 text-black font-semibold" onClick={onClose}>OK</button>
         </div>
       </motion.div>
     </div>
@@ -230,7 +239,7 @@ function MCQuestion({moduleId,qIndex,question,options,onResult}){
                         : `Why that’s not best:\n${choice.explain || choice.why || 'There are safer, more reliable options.'}\n\nBest answer: ${(options.find(o=>o.correct)||{}).t}`);
     setLocked(true);
     setModal({open:true,correct:ok,title:question,detail});
-    onResult(ok, detail, (options.find(o=>o.correct)||{}).t);
+    onResult(ok, detail, selected);  // pass picked option index
   };
 
   return (
@@ -248,8 +257,8 @@ function MCQuestion({moduleId,qIndex,question,options,onResult}){
                 "w-full text-left px-4 py-3 rounded border transition",
                 !locked && isSel && "bg-white/15 border-white/30",
                 !locked && !isSel && "bg-white/5 hover:bg-white/10 border-white/10",
-                isCorrect && "bg-green-500/15 border-green-500/40",
-                isWrongSel && "bg-red-500/15 border-red-500/40"
+                isCorrect && "bg-green-600 border-green-400",
+                isWrongSel && "bg-red-600 border-red-400"
               )}
             >
               {o.t}
@@ -282,12 +291,12 @@ function ShortAnswer({prompt,rubric,onResult}){
         <button className="px-4 py-2 bg-brand text-black rounded font-semibold" onClick={()=>{ const res=grade(v,rubric); setFb(res.feedback); setOk(res.ok); onResult(res.ok,res.feedback); }}>Check</button>
         <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setV(''); setFb(null); setOk(false); }}>Reset</button>
       </div>
-      {fb && <div className={cx("p-3 mt-2 rounded border", ok? "bg-green-500/10 border-green-500/30":"bg-red-500/10 border-red-500/30")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
+      {fb && <div className={cx("p-3 mt-2 rounded border", ok? "bg-green-600 border-green-400":"bg-red-600 border-red-400")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
     </div>
   );
 }
 
-/* ===== Discussions & stats (local/Firebase) ===== */
+/* ===== Discussions & stats ===== */
 async function recordItemStat(moduleId, qIdx, pickedIdx, correct){
   if(CONFIG.USE_FIREBASE && appState.db){
     const ref = appState.db.collection('itemstats').doc(moduleId);
@@ -345,7 +354,7 @@ function ModuleDiscussion({moduleId,user,onClose}){
     setText('');
   };
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
-    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
     <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-2xl border border-white/10">
       <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">Discussion — {moduleId}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <div className="h-72 overflow-y-auto space-y-2 mb-3">{msgs.map((m,i)=><div key={i} className="text-sm"><span className="text-brand">{m.user}:</span> {m.text}</div>)}</div>
@@ -359,7 +368,7 @@ function ItemAnalysis({moduleId,onClose}){
   const [stats,setStats]=useState({});
   useEffect(()=>{ (async()=> setStats(await loadItemStats(moduleId)))(); },[moduleId]);
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
-    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
     <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
       <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">Quiz Item Analysis</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <div className="space-y-3">
@@ -377,7 +386,7 @@ function ItemAnalysis({moduleId,onClose}){
   </div>;
 }
 
-/* ===== Story blocks (rich, real-life) ===== */
+/* ===== Story blocks (richer) ===== */
 function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}catch{}},[]);
   if(block.type==='text') return <p className="text-white/85 leading-relaxed">{block.content}</p>;
   if(block.type==='callout') return <div className={cx("p-4 rounded border", block.tone==='warn'?"bg-yellow-500/10 border-yellow-500/30":"bg-white/5 border-white/10")}>{block.content}</div>;
@@ -387,13 +396,22 @@ function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}cat
   if(block.type==='code') return <div className="code-block border border-white/10"><pre><code className={block.lang}>{block.content}</code></pre></div>;
   if(block.type==='chips') return <div className="flex flex-wrap gap-2">{block.items.map(x=><ToolChip key={x} name={x} onClick={()=>onTool(x)}/>)}</div>;
   if(block.type==='checklist') return <ul className="list-disc list-inside space-y-1">{block.items.map((x,i)=><li key={i}>{x}</li>)}</ul>;
+  if(block.type==='scene') return (
+    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+      <div className="font-semibold">{block.title}</div>
+      <p className="text-white/85 mt-2">{block.content}</p>
+      {block.hints && <ul className="mt-2 list-disc list-inside text-sm opacity-90">{block.hints.map((h,i)=><li key={i}>{h}</li>)}</ul>}
+      {block.code && <div className="code-block border border-white/10 mt-3"><pre><code className={block.lang||'bash'}>{block.code}</code></pre></div>}
+    </div>
+  );
   return null;
 }
 
-/* ===== Lesson Module (fullscreen) with richer story ===== */
+/* ===== Lesson Module (fullscreen) ===== */
 function LessonModule({module,user,onClose,onProgress}){
   const [tool,setTool]=useState(null); const [step,setStep]=useState(0);
   const [showDiscuss,setShowDiscuss]=useState(false); const [showStats,setShowStats]=useState(false);
+  const [showCheat,setShowCheat]=useState(false);
   const ref=useRef(null); useEffect(()=>{try{hljs?.highlightAll()}catch{}},[step]);
 
   const giveXP=async(p=10)=>{ await onProgress({xpDelta:p}); };
@@ -404,6 +422,7 @@ function LessonModule({module,user,onClose,onProgress}){
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl md:text-3xl font-bold">{module.title}</h2>
           <div className="flex gap-2">
+            <button className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm" onClick={()=>setShowCheat(true)}><i className="fa-solid fa-terminal mr-2"></i>Linux Cheat Sheet</button>
             <button className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm" onClick={()=>setShowDiscuss(true)}><i className="fa-solid fa-comments mr-2"></i>Discussion</button>
             <button className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm" onClick={()=>setShowStats(true)}><i className="fa-solid fa-chart-simple mr-2"></i>Item Analysis</button>
             <FullscreenButton targetRef={ref}/>
@@ -414,7 +433,9 @@ function LessonModule({module,user,onClose,onProgress}){
         {step===0 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
           <Badge tone="gray">Story Mode</Badge>
           <div className="mt-3 grid gap-4">{module.story.map((b,i)=><StoryBlock key={i} block={b} onTool={setTool}/>)}</div>
-          <div className="mt-6 flex gap-2"><button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Begin Practice</button></div>
+          <div className="mt-6 flex gap-2">
+            <button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Begin Practice</button>
+          </div>
         </motion.div>}
 
         {step===1 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
@@ -436,8 +457,8 @@ function LessonModule({module,user,onClose,onProgress}){
           <Badge tone="green">Final Quiz</Badge>
           <div className="mt-3 space-y-6">{module.quiz.map((q,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
             <div className="font-semibold mb-3">{q.q}</div>
-            <MCQuestion moduleId={module.id} qIndex={i} question={q.q} options={q.answers} onResult={async(ok,detail)=>{
-              await recordItemStat(module.id, i, 0, ok); if(ok) giveXP(15);
+            <MCQuestion moduleId={module.id} qIndex={i} question={q.q} options={q.answers} onResult={async(ok,_detail,picked)=>{
+              await recordItemStat(module.id, i, picked, ok); if(ok) giveXP(15);
             }}/>
           </div>)}</div>
           <div className="mt-6 flex gap-2"><button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-white/10">Back</button>
@@ -448,13 +469,14 @@ function LessonModule({module,user,onClose,onProgress}){
     {tool && <ToolModal tool={tool} onClose={()=>setTool(null)}/>}
     {showDiscuss && <ModuleDiscussion moduleId={module.id} user={user} onClose={()=>setShowDiscuss(false)}/>}
     {showStats && <ItemAnalysis moduleId={module.id} onClose={()=>setShowStats(false)}/>}
+    {showCheat && <LinuxCheatSheet onClose={()=>setShowCheat(false)}/>}
   </div>;
 }
 
 /* ===== Tool modal ===== */
 function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool]||TOOL_DB['Wireshark'];
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
-    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
     <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
       <div className="flex items-center justify-between mb-4"><h3 className="text-xl font-semibold">{tool}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <p className="text-white/80 mb-3">{t.what}</p>
@@ -464,8 +486,87 @@ function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool]
   </div>;
 }
 
-/* ===== Course scaffolding ===== */
+/* ===== Linux Cheat Sheet (search + copy) ===== */
+function LinuxCheatSheet({onClose}){
+  const SECTIONS = [
+    { title:'Navigation & Files', items:[
+      ['pwd','Print working directory'],
+      ['ls -la','List with details, including hidden'],
+      ['cd /path','Change directory'],
+      ['cp src dst','Copy file'],
+      ['mv src dst','Move/Rename'],
+      ['rm file','Remove file'],
+      ['rm -r dir','Remove directory recursively'],
+      ['touch file','Create empty file'],
+      ['mkdir -p path','Create directory tree']
+    ]},
+    { title:'Permissions', items:[
+      ['chmod u+x file','Add execute to user'],
+      ['chown user:group file','Change owner/group'],
+      ['umask 022','Default permission mask']
+    ]},
+    { title:'Search & Filters', items:[
+      ['grep -R "text" .','Recursive text search'],
+      ['find . -name "*.log"','Find files by name'],
+      ['awk \'{print $1}\' file','Column extraction'],
+      ['sed -n "1,10p" file','Print lines 1..10']
+    ]},
+    { title:'Processes & Services', items:[
+      ['ps aux','List processes'],
+      ['top / htop','Interactive monitor'],
+      ['kill -9 PID','Force kill process'],
+      ['systemctl status service','Service status'],
+      ['journalctl -u service','Service logs']
+    ]},
+    { title:'Networking', items:[
+      ['ip a','Interfaces'],
+      ['ss -tuln','Listening sockets'],
+      ['curl -I https://site','HTTP headers'],
+      ['ping -c 4 host','ICMP test'],
+      ['traceroute host','Route trace'],
+      ['nmap -sV host','Service scan (requires nmap)']
+    ]},
+    { title:'Archives', items:[
+      ['tar -czf out.tgz dir/','Create gzip tar'],
+      ['tar -xzf file.tgz','Extract gzip tar'],
+      ['zip -r out.zip dir/','Create zip'],
+      ['unzip file.zip','Extract zip']
+    ]}
+  ];
+  const [q,setQ]=useState('');
+  const list=SECTIONS.map(s=>({...s, items:s.items.filter(([cmd,desc])=>cmd.includes(q)||desc.toLowerCase().includes(q.toLowerCase()))})).filter(s=>s.items.length>0);
 
+  const copy=(text)=>{ navigator.clipboard?.writeText(text); };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
+      <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-3xl border border-white/10">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-semibold"><i className="fa-solid fa-terminal mr-2"></i>Linux Commands Cheat Sheet</h3>
+          <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
+        </div>
+        <input value={q} onChange={e=>setQ(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2" placeholder="Search commands or descriptions…"/>
+        <div className="grid md:grid-cols-2 gap-4 mt-4 max-h-[60vh] overflow-y-auto pr-1">
+          {list.map((s,si)=><div key={si} className="p-3 rounded-lg bg-white/5 border border-white/10">
+            <div className="font-semibold mb-2">{s.title}</div>
+            <ul className="space-y-2">
+              {s.items.map(([cmd,desc],i)=><li key={i} className="flex items-center justify-between gap-2">
+                <div>
+                  <code className="bg-black/40 px-2 py-1 rounded">{cmd}</code>
+                  <div className="text-xs opacity-80 mt-1">{desc}</div>
+                </div>
+                <button className="px-2 py-1 text-xs bg-white/10 rounded hover:bg-white/20" onClick={()=>copy(cmd)}>Copy</button>
+              </li>)}
+            </ul>
+          </div>)}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ===== Course scaffolding ===== */
 const FOUNDATIONS_10=[
   "The Internet Under Attack","Recon & Network Basics","Web App Security 101","Authentication & Authorization",
   "Intro to Cryptography","Secure Coding (Top 10)","Linux Security Fundamentals","Windows Security Fundamentals",
@@ -485,7 +586,7 @@ const SQL_10=[
   "Audit Logging & Triggers (Concepts)","Encryption at Rest & in Transit","SQL Capstone"
 ];
 
-/* Blue / Red / DevSecOps / AI Security featured (shortened to focus work on Network & SQL now) */
+/* Blue / Red / DevSecOps / AI */
 const BLUE_10=[
   "C2 Beacon Hunt with Zeek + SPL","Windows Eventing (Sysmon)","Network Telemetry (NetFlow/PCAP)","DNS Security",
   "Detection Engineering 1","Alert Triage & Escalation","Cloud Logs (AWS/GCP/Azure)","Endpoint Telemetry (EDR)",
@@ -506,19 +607,20 @@ const AISEC_10=[
   "Secure MLOps Pipelines","Runtime Monitoring (AI)","LLM App Risks","Vector DB Risks","AI Incident Response","AI Capstone"
 ];
 
-/* Default & authored builders */
+/* Default module builder */
 function defaultModule(id, title, tools=[], objective="Hands-on learning objective") {
   return {
     id, title,
     story:[
-      {type:'text', content:`You’re assigned: ${title}. You’ll learn how pros approach this problem and practice safely.`},
+      {type:'scene', title:'Briefing', content:`Mission: ${title}. You’ll approach this the way a professional team would — stepwise, safe, reversible.`},
       {type:'chips', items: tools.slice(0,3).length? tools.slice(0,3): ['Wireshark','Nmap']},
+      {type:'scene', title:'Evidence', content:'Gather the minimum information to orient before touching anything.', hints:['Logs first, changes second','Prefer read-only vantage points']},
       {type:'timeline', items:[
-        {t:'00:00', d:'Read the signal and scope the task.'},
-        {t:'00:10', d:'Collect the minimum evidence to orient.'},
-        {t:'00:20', d:'Decide on a safe next action.'}
+        {t:'00:00', d:'Read the signal and scope.'},
+        {t:'00:10', d:'Collect minimal evidence.'},
+        {t:'00:20', d:'Decide on the smallest safe action.'}
       ]},
-      {type:'callout', tone:'warn', content:'We simulate techniques safely. No unauthorized testing.'}
+      {type:'callout', tone:'warn', content:'Simulated only. Never test on systems you don’t own or have permission to assess.'}
     ],
     practice:[
       {mode:'mc', title:'First action?', options:[
@@ -541,23 +643,25 @@ function defaultModule(id, title, tools=[], objective="Hands-on learning objecti
   };
 }
 
-/* Authored modules with richer stories (Network + SQL heavy) */
+/* Authored modules (deeper story) */
 const AUTHORED = {
   network: {
     "Packet Capture Triage (Wireshark + Zeek)": {
       id:'net-1', title:'Packet Capture Triage (Wireshark + Zeek)',
       prereq: [],
       story:[
-        {type:'text', content:"An outage window ends in 5 minutes. Ops drops a 5-minute PCAP on your desk. The business wants to know if the outage was network-related."},
+        {type:'scene', title:'Briefing', content:"It’s 16:55. A critical release deployed at 16:30. Support phones light up: intermittent timeouts. You get a 5-minute PCAP from the API gateway."},
         {type:'chips', items:['Wireshark','Zeek']},
+        {type:'scene', title:'Hypotheses', content:"Is it network congestion, TLS handshake failures after a cert change, or app latency? We don’t guess — we validate.", hints:['Check packet loss/retrans','Look for sudden protocol mix changes','Correlate HTTP status codes']},
         {type:'timeline', items:[
-          {t:'00:00', d:'Open PCAP → Wireshark → Statistics → Protocol Hierarchy (fast overview).'},
-          {t:'00:02', d:'Conversations → top talkers; Endpoints → scan for anomalies.'},
-          {t:'00:03', d:'zeek -r capture.pcap → review conn.log (flows), dns.log (names), http.log (URIs).'},
-          {t:'00:04', d:'Summarize: is it a network fault, app delay, or external?'}
+          {t:'00:00', d:'Wireshark → Statistics → Protocol Hierarchy (is traffic mix normal?)'},
+          {t:'00:02', d:'Conversations/Endpoints → Top talkers, RST/FIN spikes'},
+          {t:'00:03', d:'zeek -r capture.pcap → conn.log, dns.log, http.log summary'},
+          {t:'00:04', d:'Draft a 3-bullet incident note for leadership'}
         ]},
-        {type:'diagram', content:`[Client]───TLS───>[API Gateway]───HTTP/2───>[App]\n             \\__ TCP RST spikes? __/`},
-        {type:'callout', tone:'warn', content:'Focus on signals that explain the outage: errors, retransmits, protocol mix, and unusual talkers.'}
+        {type:'diagram', content:`[Client]──TLS──>[API GW]──HTTP/2──>[App]\n  \\__ DUP-ACK bursts? __/\n  \\__ Server 5xx spikes? __/`},
+        {type:'code', lang:'bash', content:`# Fast Zeek triage\nzeek -Cr outage.pcap\ncut -d$'\\t' -f id.orig_h,id.resp_h,proto,service conn.log | sort | uniq -c | sort -nr | head\nawk '{print $5}' http.log | sort | uniq -c | sort -nr | head`},
+        {type:'callout', tone:'warn', content:'Focus on signals that explain user pain: retransmits, resets, 5xx, and anomalies in talker pairs.'}
       ],
       practice:[
         {mode:'mc', title:'Fastest “what’s happening” panel in Wireshark?', options:[
@@ -581,15 +685,9 @@ const AUTHORED = {
     "TCP/IP Deep Dive": {
       id:'net-2', title:'TCP/IP Deep Dive', prereq:['net-1'],
       story:[
-        {type:'text', content:"You’re debugging intermittent slowness. Is it app-level or TCP congestion/retransmits?"},
-        {type:'chips', items:['Wireshark']},
-        {type:'diagram', content:`Client ──SYN/SYN-ACK/ACK──> Server\n[Check RTT, MSS, Window Scale, SACK, Retrans, DUP-ACK]`},
-        {type:'checklist', items:[
-          'Confirm three-way handshake health',
-          'Inspect window size evolution',
-          'Track DUP-ACK bursts & retransmissions',
-          'Correlate with application timestamps'
-        ]},
+        {type:'scene', title:'Briefing', content:"Users report slow downloads above 50 MB. Small files are fine. Suspect congestion, window issues, or bufferbloat."},
+        {type:'diagram', content:`SYN → SYN/ACK → ACK\nCheck: RTT, MSS, Window Scale, SACK, DUP-ACK bursts, Retrans`},
+        {type:'scene', title:'Decision', content:'Use pcaps + server metrics to isolate if TCP is starving the app or vice versa.', hints:['Look for falling window size','Correlate app logs timestamps']}
       ],
       practice:[
         {mode:'mc', title:'What suggests congestion?', options:[
@@ -605,188 +703,15 @@ const AUTHORED = {
           {t:'Certificate pinning failure', correct:false, explain:'TLS issue, not TCP windowing.'}
         ]}
       ]
-    },
-    "Subnetting & Routing Basics": {
-      id:'net-3', title:'Subnetting & Routing Basics', prereq:['net-2'],
-      story:[
-        {type:'text', content:"A new site-to-site link is up but hosts cannot reach finance apps. Overlap or missing routes?"},
-        {type:'diagram', content:`HQ 10.10.0.0/16  <──VPN──>  Branch 10.10.8.0/24 (overlap!)`},
-        {type:'info', content:"Goal: detect overlapping subnets or route asymmetry and propose a clean re-address or more specific routes."}
-      ],
-      practice:[
-        {mode:'mc', title:'Which symptom hints subnet overlap?', options:[
-          {t:'Some hosts reachable, others blackhole randomly', correct:true, explain:'Overlap causes routing unpredictability.'},
-          {t:'CPU spikes on DB', correct:false, explain:'Not routing symptom.'},
-          {t:'Disk near full', correct:false, explain:'Storage issue.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Safest long-term fix for overlapping RFC1918 ranges?', answers:[
-          {t:'Re-address branch with a non-overlapping subnet', correct:true, explain:'Removes ambiguity permanently.'},
-          {t:'Static route hacks everywhere', correct:false, explain:'Brittle & error-prone.'},
-          {t:'Disable VPN encryption', correct:false, explain:'Not related and unsafe.'}
-        ]}
-      ]
-    },
-    "Switching & VLANs": {
-      id:'net-4', title:'Switching & VLANs', prereq:['net-3'],
-      story:[
-        {type:'text', content:"After a switch replacement, printers vanished from user VLAN. Suspect trunk misconfig."},
-        {type:'checklist', items:['Verify trunk allowed VLANs','Check native VLAN tags','Confirm STP states','Look for duplicate IP ranges']}
-      ],
-      practice:[
-        {mode:'mc', title:'Which change restores visibility quickest?', options:[
-          {t:'Allow printer VLAN on the uplink trunk', correct:true, explain:'If trunk blocks VLAN, devices isolate.'},
-          {t:'Replace all printers', correct:false, explain:'Unnecessary.'},
-          {t:'Disable STP globally', correct:false, explain:'Dangerous.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Native VLAN mismatch effects?', answers:[
-          {t:'Traffic leaks/frames untagged unexpectedly', correct:true, explain:'Leads to weird reachability problems.'},
-          {t:'All links down', correct:false, explain:'Not typical.'},
-          {t:'DNS cache growth', correct:false, explain:'Unrelated.'}
-        ]}
-      ]
-    },
-    "DNS In Depth": {
-      id:'net-5', title:'DNS In Depth', prereq:['net-4'],
-      story:[
-        {type:'text', content:"Users report random app failures; packet capture shows long DNS times and NXDOMAIN spikes."},
-        {type:'checklist', items:['Check resolvers health','Validate forwarders','Look at TTLs & cache hit rates','Inspect suspicious query patterns']},
-      ],
-      practice:[
-        {mode:'mc', title:'What increases DNS resilience fastest?', options:[
-          {t:'Anycast resolvers with health checks', correct:true, explain:'Reduces single points of failure.'},
-          {t:'Lower all TTLs to 0', correct:false, explain:'Increases load & latency.'},
-          {t:'Disable DNSSEC', correct:false, explain:'Not the right fix.'},
-        ]},
-      ],
-      quiz:[
-        {q:'NXDOMAIN spikes + malware alerts likely point to…', answers:[
-          {t:'DGA (domain generation algorithms) activity', correct:true, explain:'Many random non-existent domains is DGA hallmark.'},
-          {t:'BGP hijack', correct:false, explain:'Different indicators.'},
-          {t:'TLS offload bug', correct:false, explain:'Not DNS symptom.'}
-        ]}
-      ]
-    },
-    "TLS Handshake & PKI": {
-      id:'net-6', title:'TLS Handshake & PKI', prereq:['net-5'],
-      story:[
-        {type:'text', content:"Edge reports handshake failures after a cert rotation."},
-        {type:'diagram', content:`Client -> SNI -> ServerHello(cert, ALPN)\nCheck: Expiry, chain, key usage, SNI mismatch`},
-      ],
-      practice:[
-        {mode:'mc', title:'Most common cause after rotation?', options:[
-          {t:'Intermediate CA not included in chain', correct:true, explain:'Clients fail to build trust if chain incomplete.'},
-          {t:'Routers overheated', correct:false, explain:'Not likely root cause.'},
-          {t:'Too many DNS NS records', correct:false, explain:'Irrelevant.'},
-        ]},
-      ],
-      quiz:[
-        {q:'SNI mismatch symptoms?', answers:[
-          {t:'Unexpected cert CN/host mismatch errors', correct:true, explain:'Wrong virtual host served.'},
-          {t:'Higher RTT', correct:false, explain:'Latency, not cert.'},
-          {t:'UDP floods', correct:false, explain:'Different vector.'}
-        ]}
-      ]
-    },
-    "Firewalls & ACLs": {
-      id:'net-7', title:'Firewalls & ACLs', prereq:['net-6'],
-      story:[
-        {type:'text', content:"A new microservice cannot reach DB. Security wants least privilege enforced."},
-        {type:'checklist', items:['Document flows','Permit only required ports','Use service accounts','Log denies & monitor']},
-      ],
-      practice:[
-        {mode:'mc', title:'Best first change?', options:[
-          {t:'Create tight allow rules from service to DB port only', correct:true, explain:'Least privilege by design.'},
-          {t:'Open any to any', correct:false, explain:'Unacceptable exposure.'},
-          {t:'Disable firewall temporarily', correct:false, explain:'Risky pattern.'},
-        ]},
-      ],
-      quiz:[
-        {q:'What avoids shadow rules?', answers:[
-          {t:'Order ACLs carefully and document', correct:true, explain:'Prevents hidden blocks/permits.'},
-          {t:'Duplicate rules randomly', correct:false, explain:'Adds confusion.'},
-          {t:'No logging', correct:false, explain:'Visibility matters.'}
-        ]}
-      ]
-    },
-    "IDS/IPS Concepts": {
-      id:'net-8', title:'IDS/IPS Concepts', prereq:['net-7'],
-      story:[
-        {type:'text', content:"SOC sees repeated alerts for a new exploit; business asks for safe blocking."},
-        {type:'checklist', items:['Confirm fidelity','Deploy signature in monitor mode','Check false positives','Enable block w/ exceptions']},
-      ],
-      practice:[
-        {mode:'mc', title:'Safer rollout order?', options:[
-          {t:'Monitor → validate → block with alerting', correct:true, explain:'Avoids breaking legit traffic.'},
-          {t:'Block everywhere first', correct:false, explain:'High outage risk.'},
-          {t:'Ignore alerts', correct:false, explain:'Not acceptable.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Inline IPS risk you must manage?', answers:[
-          {t:'Latency & false positives causing outages', correct:true, explain:'Tuning and phased rollout needed.'},
-          {t:'More DNS queries', correct:false, explain:'Unrelated.'},
-          {t:'Extra TLS ciphers', correct:false, explain:'Not the key risk.'}
-        ]}
-      ]
-    },
-    "BGP Basics & Security (Concepts)": {
-      id:'net-9', title:'BGP Basics & Security (Concepts)', prereq:['net-8'],
-      story:[
-        {type:'text', content:"A partner announces a more specific prefix by mistake; routes prefer them."},
-        {type:'diagram', content:`Your ASN ——> Upstreams\n   \\__ Partner ASN announces 10.10.10.0/24 (you own 10.10.0.0/16)`},
-      ],
-      practice:[
-        {mode:'mc', title:'Mitigation lever?', options:[
-          {t:'Max-prefix & prefix-lists with RPKI validation', correct:true, explain:'Prevents hijacks/mistakes being accepted.'},
-          {t:'Disable TLS 1.3', correct:false, explain:'Not routing.'},
-          {t:'Clear ARP tables', correct:false, explain:'Layer 2, unrelated.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Why RPKI helps?', answers:[
-          {t:'Cryptographically verifies who can originate a prefix', correct:true, explain:'Stops many route leaks.'},
-          {t:'Encrypts traffic', correct:false, explain:'Different purpose.'},
-          {t:'Improves Wi-Fi roaming', correct:false, explain:'Unrelated.'}
-        ]}
-      ]
-    },
-    "Network Capstone": {
-      id:'net-10', title:'Network Capstone', prereq:['net-9'],
-      story:[
-        {type:'text', content:"Bring it together: triage a synthetic outage with pcap + logs, propose a change with safe rollback."},
-        {type:'callout', tone:'warn', content:'Simulated only. Never test against real unknown systems.'}
-      ],
-      practice:[
-        {mode:'short', title:'Capstone plan', prompt:'Outline your triage → fix → rollback plan in 6 bullets.', rubric:{
-          minScore:.6, keywords:[{group:['triage','pcap','logs'],weight:.3},{group:['fix','change','gate'],weight:.3},{group:['rollback','verify'],weight:.4}],
-          modelAnswer:"1) Confirm signal 2) Hypothesis 3) Evidence 4) Minimal fix 5) Verify 6) Rollback plan if needed."
-        }},
-      ],
-      quiz:[
-        {q:'Best practice for risky network change?', answers:[
-          {t:'Time-boxed, reversible, with monitoring & comms', correct:true, explain:'Reduces blast radius and surprises.'},
-          {t:'One big midnight push', correct:false, explain:'Hard to roll back.'},
-          {t:'No comms', correct:false, explain:'Stakeholders need heads-up.'}
-        ]}
-      ]
     }
   },
   sql: {
     "SQL Security Fundamentals": {
       id:'sql-1', title:'SQL Security Fundamentals', prereq:[],
       story:[
-        {type:'text', content:"A login form started throwing DB errors under load. We suspect unsafe string-built queries leaking stack traces."},
-        {type:'chips', items:['ELK','ORM']},
-        {type:'timeline', items:[
-          {t:'00:00', d:'Turn off verbose error returns to users (keep logs).'},
-          {t:'00:10', d:'Find string concatenation queries.'},
-          {t:'00:20', d:'Replace with parameterized statements.'}
-        ]},
-        {type:'callout', tone:'warn', content:'We focus on defense — no exploitation steps.'}
+        {type:'scene', title:'Briefing', content:"The login page leaks stack traces under load. Error shows a SELECT built with string concatenation.", hints:['Sanitize output to users','Fix the query pattern, not just escaping']},
+        {type:'diagram', content:`/login -> api -> db\n"SELECT * FROM users WHERE name = '"+user+"' AND pass='"+pw+"';"`},
+        {type:'scene', title:'Action', content:'Replace with prepared statements; minimize error leakage; log server-side.', code:`-- Parameterized example (PostgreSQL)\nPREPARE authPlan (text, text) AS\n  SELECT id FROM users WHERE name=$1 AND password_hash = crypt($2, password_hash);\nEXECUTE authPlan($1,$2);`}
       ],
       practice:[
         {mode:'mc', title:'Strongest immediate defense?', options:[
@@ -802,207 +727,15 @@ const AUTHORED = {
           {t:'Only WHERE clauses', correct:false, explain:'Also values and sets.'}
         ]}
       ]
-    },
-    "Relational Modeling & Keys": {
-      id:'sql-2', title:'Relational Modeling & Keys', prereq:['sql-1'],
-      story:[
-        {type:'text', content:"A report joins 6 tables and times out. The model hints no proper keys."},
-        {type:'diagram', content:`users(id PK)──< orders(user_id FK)\norders──< order_items(order_id FK)`},
-      ],
-      practice:[
-        {mode:'mc', title:'What reduces join pain?', options:[
-          {t:'Proper PK/FK + selective indexes', correct:true, explain:'Improves join plans and integrity.'},
-          {t:'SELECT * everywhere', correct:false, explain:'Worsens perf and errors.'},
-          {t:'Disable FK constraints', correct:false, explain:'Data drift risk.'},
-        ]},
-      ],
-      quiz:[
-        {q:'FK benefits include…', answers:[
-          {t:'Referential integrity & better plans', correct:true, explain:'Planner can optimize joins; data stays consistent.'},
-          {t:'Fewer rows on disk', correct:false, explain:'Not necessarily.'},
-          {t:'Automatic backups', correct:false, explain:'Separate concern.'}
-        ]}
-      ]
-    },
-    "SQL Basics SELECT/WHERE/JOIN": {
-      id:'sql-3', title:'SQL Basics SELECT/WHERE/JOIN', prereq:['sql-2'],
-      story:[
-        {type:'text', content:"An intern wrote a report with cross joins exploding to millions of rows."},
-        {type:'checklist', items:['Use explicit JOIN conditions','Select only needed columns','Filter early with WHERE','Test with LIMIT first']},
-      ],
-      practice:[
-        {mode:'mc', title:'Fix first?', options:[
-          {t:'Add ON conditions to convert cross join to inner join properly', correct:true, explain:'Prevents Cartesian explosion.'},
-          {t:'Add ORDER BY random()', correct:false, explain:'Worsens cost.'},
-          {t:'Disable indexes', correct:false, explain:'Makes slower.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Best way to avoid accidental cross joins?', answers:[
-          {t:'Always specify JOIN … ON predicates', correct:true, explain:'Removes ambiguity.'},
-          {t:'Rely on luck', correct:false, explain:'Not a method.'},
-          {t:'FULL OUTER JOIN for everything', correct:false, explain:'Rarely needed.'}
-        ]}
-      ]
-    },
-    "Transactions & Isolation Levels": {
-      id:'sql-4', title:'Transactions & Isolation Levels', prereq:['sql-3'],
-      story:[
-        {type:'text', content:"Two services update inventory concurrently; customers see negative stock."},
-        {type:'checklist', items:['Use transactions for multi-step updates','Pick isolation level per need','Avoid long-running locks','Add optimistic concurrency if suitable']},
-      ],
-      practice:[
-        {mode:'mc', title:'To stop dirty reads?', options:[
-          {t:'READ COMMITTED or higher', correct:true, explain:'Prevents dirty reads.'},
-          {t:'READ UNCOMMITTED', correct:false, explain:'Allows dirty reads.'},
-          {t:'Turn off WAL', correct:false, explain:'Not relevant & risky.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Which can prevent lost updates?', answers:[
-          {t:'Optimistic concurrency (version checks)', correct:true, explain:'Detects conflicting writes.'},
-          {t:'SELECT *', correct:false, explain:'No effect.'},
-          {t:'Cross join more', correct:false, explain:'Nope.'}
-        ]}
-      ]
-    },
-    "Privileges/Roles/Least Privilege": {
-      id:'sql-5', title:'Privileges/Roles/Least Privilege', prereq:['sql-4'],
-      story:[
-        {type:'text', content:"An app has DB superuser; audit flags risk. You’ll reduce it safely."},
-        {type:'checklist', items:['Create least-priv role','Grant minimal DML','No DDL in app role','Rotate creds & store safely']},
-      ],
-      practice:[
-        {mode:'mc', title:'First safe change?', options:[
-          {t:'Create a new least-priv role and migrate the app', correct:true, explain:'Minimize capability quickly.'},
-          {t:'Drop superuser immediately', correct:false, explain:'Risk outage mid-flow.'},
-          {t:'Share DBA creds with app team', correct:false, explain:'Increases risk.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Storing DB creds best practice?', answers:[
-          {t:'Use a secrets manager with short-lived tokens', correct:true, explain:'Auditable and revocable.'},
-          {t:'Hardcode in app', correct:false, explain:'Leaky & static.'},
-          {t:'Env var in plaintext forever', correct:false, explain:'Still risky.'}
-        ]}
-      ]
-    },
-    "Parameterization & ORM Safety": {
-      id:'sql-6', title:'Parameterization & ORM Safety', prereq:['sql-5'],
-      story:[
-        {type:'text', content:"You find a hotspot: string concatenation with user input in a search API."},
-        {type:'diagram', content:`/search?q=<user_input>  ->  SELECT * FROM items WHERE name LIKE '%<q>%';`},
-      ],
-      practice:[
-        {mode:'mc', title:'Safest fix?', options:[
-          {t:'Bind parameter & allow-list sortable columns', correct:true, explain:'Prevents structure injection and field abuse.'},
-          {t:'Escape quotes and hope', correct:false, explain:'Brittle.'},
-          {t:'Remove search feature', correct:false, explain:'Business loss.'},
-        ]},
-      ],
-      quiz:[
-        {q:'ORM safety still needs…', answers:[
-          {t:'Understanding how it binds and limiting raw queries', correct:true, explain:'ORMs help but aren’t magic.'},
-          {t:'Copy/paste from Stack Overflow', correct:false, explain:'Risky.'},
-          {t:'Disabling validation', correct:false, explain:'Opposite of safety.'}
-        ]}
-      ]
-    },
-    "Stored Procedures Safeguards": {
-      id:'sql-7', title:'Stored Procedures Safeguards', prereq:['sql-6'],
-      story:[
-        {type:'text', content:"Ops proposes moving logic into procedures. You must keep safety properties."},
-        {type:'checklist', items:['Use parameters, not string concat','Limit SECURITY DEFINER usage','Audit who can execute','Version & test deployments']},
-      ],
-      practice:[
-        {mode:'mc', title:'SECURITY DEFINER mis-use risk?', options:[
-          {t:'Privilege escalation if procedure not careful', correct:true, explain:'Executes with owner rights.'},
-          {t:'Faster GPUs', correct:false, explain:'No.'},
-          {t:'Less disk fragmentation', correct:false, explain:'N/A.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Safe pattern with procedures?', answers:[
-          {t:'Parameterize inside procedure and restrict rights', correct:true, explain:'Defense-in-depth.'},
-          {t:'Concatenate input into SQL', correct:false, explain:'Injection risk.'},
-          {t:'Grant EXECUTE to public', correct:false, explain:'Over-broad.'}
-        ]}
-      ]
-    },
-    "Audit Logging & Triggers (Concepts)": {
-      id:'sql-8', title:'Audit Logging & Triggers (Concepts)', prereq:['sql-7'],
-      story:[
-        {type:'text', content:"Compliance needs who-did-what on PII tables without crushing performance."},
-        {type:'checklist', items:['Use append-only audit table','Log who, when, which row id','Avoid logging full secrets','Ship to SIEM']},
-      ],
-      practice:[
-        {mode:'mc', title:'Lower overhead approach?', options:[
-          {t:'Minimal row-id + action + user to audit table', correct:true, explain:'Captures essentials with less cost.'},
-          {t:'Full row JSON snapshot always', correct:false, explain:'Heavy and PII risk.'},
-          {t:'No audit, just trust', correct:false, explain:'Won’t pass compliance.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Shipping to SIEM helps because…', answers:[
-          {t:'Tamper resistance & correlation', correct:true, explain:'Central storage + alerting.'},
-          {t:'Faster queries', correct:false, explain:'Not the point.'},
-          {t:'Auto encryption', correct:false, explain:'Separate control.'}
-        ]}
-      ]
-    },
-    "Encryption at Rest & in Transit": {
-      id:'sql-9', title:'Encryption at Rest & in Transit', prereq:['sql-8'],
-      story:[
-        {type:'text', content:"A partner needs TLS to the DB and at-rest encryption verified for an audit."},
-        {type:'checklist', items:['Enable TLS client-server with certs','Restrict ciphers','Enable disk/TDE','Document keys/rotation']},
-      ],
-      practice:[
-        {mode:'mc', title:'What’s essential for DB TLS?', options:[
-          {t:'Server cert chain + hostname verification', correct:true, explain:'Prevents MITM and mismatched hosts.'},
-          {t:'Self-signed any name', correct:false, explain:'Breaks verification.'},
-          {t:'No TLS for speed', correct:false, explain:'Unacceptable.'},
-        ]},
-      ],
-      quiz:[
-        {q:'At rest encryption is strongest when…', answers:[
-          {t:'Keys are managed/rotated securely (KMS/HSM)', correct:true, explain:'Keys separate from data.'},
-          {t:'Keys stored on same disk', correct:false, explain:'Not secure.'},
-          {t:'Only backups encrypted', correct:false, explain:'Primary still exposed.'}
-        ]}
-      ]
-    },
-    "SQL Capstone": {
-      id:'sql-10', title:'SQL Capstone', prereq:['sql-9'],
-      story:[
-        {type:'text', content:"Secure a small app: least-priv role, parameterize all endpoints, add audit on sensitive tables, and verify TLS."},
-        {type:'callout', tone:'warn', content:'We demonstrate defense patterns — no live targets.'}
-      ],
-      practice:[
-        {mode:'short', title:'Deployment checklist', prompt:'List the 6 highest-value changes for this app DB safety.', rubric:{
-          minScore:.6, keywords:[{group:['parameter'],weight:.2},{group:['least','privilege'],weight:.2},{group:['audit'],weight:.2},{group:['tls','encrypt'],weight:.2},{group:['secrets'],weight:.2}],
-          modelAnswer:"Param everywhere; least-priv role; secrets manager; TLS; audit PII tables; monitoring."
-        }},
-      ],
-      quiz:[
-        {q:'Most likely omission that bites later?', answers:[
-          {t:'Skipping parameterization in a “rare” endpoint', correct:true, explain:'One forgotten path creates risk window.'},
-          {t:'Too many comments', correct:false, explain:'Harmless.'},
-          {t:'Using tabs over spaces', correct:false, explain:'Style, not security.'}
-        ]}
-      ]
     }
   },
   blue: {
     "C2 Beacon Hunt with Zeek + SPL": {
       id:'blu-1', title:'C2 Beacon Hunt with Zeek + SPL', prereq:[],
       story:[
-        {type:'text', content:"Your SIEM shows periodic small egress to an odd ASN every 60s."},
+        {type:'scene', title:'Briefing', content:"Your SIEM shows periodic small egress to an odd ASN every 60s. Suspected beacon."},
         {type:'chips', items:['Zeek','Splunk']},
-        {type:'timeline', items:[
-          {t:'00:00', d:'Zeek conn.log → group by src/dst; compute inter-arrival entropy.'},
-          {t:'00:05', d:'Pivot to dns.log/http.log; find domains/URIs/UA.'},
-          {t:'00:08', d:'SPL bin 30s, stats by dest, look for flat cadence.'}
-        ]},
+        {type:'scene', title:'Approach', content:'Measure inter-arrival time entropy, group flows by dst, confirm cadence, contain gracefully.'}
       ],
       practice:[
         {mode:'mc', title:'Best indicator of beaconing?', options:[
@@ -1013,63 +746,18 @@ const AUTHORED = {
       ],
       quiz:[
         {q:'After confirming beacon, your next step is…', answers:[
-          {t:'Collect more intel & contain safely (block egress domain/IP)', correct:true, explain:'Containment after confirmation with change control.'},
+          {t:'Collect intel & contain safely (block egress domain/IP)', correct:true, explain:'Containment after confirmation with change control.'},
           {t:'Wipe endpoints immediately', correct:false, explain:'Too destructive; coordinate IR.'},
           {t:'Announce publicly', correct:false, explain:'Not before IR plan.'}
         ]}
       ]
     }
   },
-  devsecops: {
-    "Break & Fix CI/CD Pipeline": {
-      id:'dso-1', title:'Break & Fix CI/CD Pipeline', prereq:[],
-      story:[
-        {type:'text', content:"Credentials leak in logs; unscanned images push to prod. You’ll fix gates and secrets."},
-        {type:'chips', items:['Trivy','Vault']},
-        {type:'checklist', items:['Secret manager + short-lived tokens','Pre-merge SAST/SCA','Trivy image/IaC scans','Artifact signing (cosign) before deploy']},
-      ],
-      practice:[
-        {mode:'mc', title:'First fix to stop damage right now?', options:[
-          {t:'Remove secrets from logs; move to secret manager', correct:true, explain:'Stop leakage at source while you add gates.'},
-          {t:'Skip tests to go faster', correct:false, explain:'Increases risk.'},
-          {t:'Change branding', correct:false, explain:'Cosmetic only.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Secure release gates include…', answers:[
-          {t:'Fail build on high-severity SAST/SCA & unsigned artifact', correct:true, explain:'Prevents dangerous deploys.'},
-          {t:'Manual approval only', correct:false, explain:'Humans miss things.'},
-          {t:'Nightly deploy without checks', correct:false, explain:'Unsafe.'}
-        ]}
-      ]
-    }
-  },
-  asec: {
-    "Prompt Injection Defenses in an LLM App": {
-      id:'ais-1', title:'Prompt Injection Defenses in an LLM App', prereq:[],
-      story:[
-        {type:'text', content:"Your LLM reads untrusted text; attackers try to coerce tool calls."},
-        {type:'checklist', items:['Strict tool schemas','Context isolation (system vs user)','Allow-listed tools','Human review for high-risk']},
-      ],
-      practice:[
-        {mode:'mc', title:'Most effective mitigation?', options:[
-          {t:'Schema-validated tool calls + least privilege', correct:true, explain:'Prevents arbitrary execution.'},
-          {t:'Longer prompts', correct:false, explain:'Doesn’t help.'},
-          {t:'Higher temperature', correct:false, explain:'Not safety.'},
-        ]},
-      ],
-      quiz:[
-        {q:'Which reduces cross-doc injection risks?', answers:[
-          {t:'Isolate user data from system prompts & escape instruction-like tokens', correct:true, explain:'Reduces prompt influence.'},
-          {t:'Trust all inputs', correct:false, explain:'No.'},
-          {t:'Ignore errors', correct:false, explain:'No.'}
-        ]}
-      ]
-    }
-  }
+  devsecops: {},
+  asec: {}
 };
 
-/* Build tracks (10 each, heavily authored for Network/SQL) */
+/* Build tracks (10 each) */
 function buildTrack(name, titles){
   const out=[]; for (let i=0;i<titles.length;i++){
     const t=titles[i]; const authored = AUTHORED[name]?.[t];
@@ -1088,21 +776,33 @@ const TRACKS = {
   sql:         buildTrack('sql', SQL_10),
 };
 
-/* ===== Course map, prerequisites, roles, badges, weekly challenges ===== */
+/* ===== Unlock logic: lock modules after 5 until first five are completed ===== */
+function getCompletedCount(progressTrack){ return Object.keys(progressTrack||{}).length; }
+function isPhaseLocked(indexInTrack, progressTrack){
+  // Modules 0..4 = always accessible, 5..9 = require >=5 completed
+  const completed = getCompletedCount(progressTrack);
+  if(indexInTrack >= 5 && completed < 5) return true;
+  return false;
+}
 function hasPrereqsDone(module, progressTrack){ const req=module.prereq||[]; return req.every(r=>progressTrack[r]); }
-function CourseMap({title,nodes=[],progress={},onOpen}){
+
+/* ===== Course map, roles, badges, weekly ===== */
+function CourseMap({title,trackKey,nodes=[],progress={},onOpen}){
   return <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
     <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">{title}</h3>
       <Badge tone="gray">{Object.keys(progress).length} completed</Badge></div>
     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-      {nodes.map((n,idx)=>{ const done=progress[n.id]; const locked = n.prereq && n.prereq.length>0 && !hasPrereqsDone(n,progress);
+      {nodes.map((n,idx)=>{ const done=progress[n.id]; const lockedByPrereq = n.prereq && n.prereq.length>0 && !hasPrereqsDone(n,progress);
+        const lockedByPhase = isPhaseLocked(idx, progress);
+        const locked = lockedByPrereq || lockedByPhase;
         return <button key={n.id||idx} disabled={locked}
-          onClick={()=>onOpen(n)}
+          onClick={()=>!locked && onOpen(n)}
           className={cx("text-left p-4 rounded-xl border transition", locked?"bg-white/5 border-white/10 opacity-50 cursor-not-allowed":
-            done?"bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10 hover:bg-white/10")}>
+            done?"bg-green-600 border-green-400":"bg-white/5 border-white/10 hover:bg-white/10")}>
           <div className="flex items-start justify-between"><span className="font-semibold">{n.title}</span>
-            {locked?<i className="fa-solid fa-lock text-white/50"></i>: done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
+            {locked?<i className="fa-solid fa-lock text-white/60"></i>: done?<i className="fa-solid fa-check text-green-300"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
           </div>
+          {lockedByPhase && <div className="text-xs mt-1 opacity-70">Locked: complete first 5 modules</div>}
           {n.prereq?.length>0 && <div className="text-xs mt-1 opacity-70">Prereq: {n.prereq.join(', ')}</div>}
         </button>;
       })}
@@ -1114,7 +814,8 @@ const ROLE_PLANS = {
   "SOC Analyst":        ['foundations','blue','network'],
   "AppSec Engineer":    ['foundations','red','devsecops','sql'],
   "DevSecOps Engineer": ['foundations','devsecops','blue'],
-  "AI Security Engineer": ['foundations','asec','blue']
+  "AI Security Engineer": ['foundations','asec','blue'],
+  "Cyber Security Engineer": ['foundations','network','blue','devsecops','sql']   /* new role */
 };
 
 function RoleDashboard({role,progress,onJump}){
@@ -1146,18 +847,18 @@ function computeBadges(progress){ const badges=new Set(progress.badges||[]);
   return Array.from(badges);
 }
 
-/* Weekly challenges (pull modules from different tracks) */
+/* Weekly challenges (stub) */
 const WEEKLY = [
   { id:'wch-1', title:'Blue + Network: Beacon Cadence Hunt', pulls:['blue','network'] },
   { id:'wch-2', title:'DevSecOps + SQL: Secrets & Param Fixathon', pulls:['devsecops','sql'] },
   { id:'wch-3', title:'Foundations Mix: Safe Triage Sprint', pulls:['foundations','network','sql'] }
 ];
 
-/* ===== Auth modal & certificate omitted for brevity from previous version — keep simple auth here ===== */
+/* ===== Auth modal ===== */
 function AuthModal({onClose,onAuthed}){
   const [tab,setTab]=useState('login'); const [email,setEmail]=useState(''); const [pass,setPass]=useState(''); const [err,setErr]=useState('');
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
-    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
     <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-md border border-white/10">
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
@@ -1166,7 +867,7 @@ function AuthModal({onClose,onAuthed}){
         </div>
         <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
       </div>
-      {err && <div className="mb-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-sm">{err}</div>}
+      {err && <div className="mb-3 p-2 rounded bg-red-600 border border-red-400 text-sm">{err}</div>}
       <div className="space-y-3">
         <div><label className="text-sm block opacity-80 mb-1">Email</label>
           <input type="email" className="w-full bg-black/40 border border-white/10 rounded px-3 py-2" value={email} onChange={e=>setEmail(e.target.value)}/></div>
@@ -1210,10 +911,6 @@ function App(){
   const totalModules = Object.values(TRACKS).reduce((a,v)=>a+v.length,0);
   const xpPct=Math.min(100, Math.round((modulesDone / totalModules) * 100));
 
-  const completedTrack = (k)=> Object.keys(progress[k]).length >= TRACKS[k].length*0.8;
-
-  const nodesWithPrereq=(key)=>TRACKS[key].map(m=>({id:m.id,title:m.title,prereq:m.prereq}));
-
   return <div className="min-h-screen flex flex-col">
     <header className="sticky top-0 z-30">
       <div className="glass border-b border-white/10">
@@ -1225,9 +922,9 @@ function App(){
             <Badge>Story → Practice → Quiz</Badge>
           </div>
           <nav className="hidden md:flex items-center gap-2">
-            {['home','learn','maps','roles','labs','challenges','dashboard'].map(p =>
+            {['home','learn','maps','roles','labs','challenges','cheats','dashboard'].map(p =>
               <button key={p} onClick={()=>setPage(p)} className={cx("px-3 py-2 rounded text-sm", page===p?"bg-white/15":"hover:bg-white/10")}>
-                {p==='maps'?'Course Maps':p[0].toUpperCase()+p.slice(1)}
+                {p==='maps'?'Course Maps':p==='cheats'?'Cheat Sheets':p[0].toUpperCase()+p.slice(1)}
               </button>)}
           </nav>
           <div className="flex items-center gap-2">
@@ -1267,14 +964,18 @@ function App(){
           </div>
           <div className="text-sm opacity-70">{Object.keys(progress[activeTrack]).length} / {TRACKS[activeTrack].length} completed</div>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">{TRACKS[activeTrack].map(m=>{
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">{TRACKS[activeTrack].map((m,idx)=>{
           const done=!!progress[activeTrack][m.id];
-          const locked = m.prereq && m.prereq.length>0 && !hasPrereqsDone(m,progress[activeTrack]);
-          return <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border", locked? "bg-white/5 border-white/10 opacity-50": done? "bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10")}>
+          const lockedByPrereq = m.prereq && m.prereq.length>0 && !hasPrereqsDone(m,progress[activeTrack]);
+          const lockedByPhase = isPhaseLocked(idx, progress[activeTrack]);
+          const locked = lockedByPrereq || lockedByPhase;
+          return <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border", locked? "bg-white/5 border-white/10 opacity-50": done? "bg-green-600 border-green-400":"bg-white/5 border-white/10")}>
             <div className="flex items-start justify-between gap-3">
               <div><h3 className="font-semibold">{m.title}</h3>
-                <div className="mt-1 text-sm opacity-70">{locked? 'Locked (complete prereqs) :': (done?'Completed':'Story → Practice → Quiz')}</div></div>
-              {locked?<i className="fa-solid fa-lock text-white/50"></i>: done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
+                <div className="mt-1 text-sm opacity-70">
+                  {lockedByPhase ? 'Locked: complete first 5 modules' : lockedByPrereq ? 'Locked (prereqs required)' : (done?'Completed':'Story → Practice → Quiz')}
+                </div></div>
+              {locked?<i className="fa-solid fa-lock text-white/60"></i>: done?<i className="fa-solid fa-check text-green-200"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
             </div>
             <div className="mt-4 flex gap-2">
               {!locked && (!done
@@ -1286,10 +987,13 @@ function App(){
       </section>}
 
       {page==='maps' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-        <h2 className="text-2xl font-bold">Course Maps (with prerequisites)</h2>
+        <h2 className="text-2xl font-bold">Course Maps (with prerequisites & phased unlocks)</h2>
         <div className="grid lg:grid-cols-2 gap-6 mt-6">
           {Object.entries({Foundations:'foundations','Blue Team':'blue','Red Team':'red','DevSecOps':'devsecops','AI Security':'asec','Network':'network','Databases (SQL)':'sql'}).map(([label,key])=>
-            <CourseMap key={key} title={label} nodes={TRACKS[key].map(m=>({id:m.id,title:m.title,prereq:m.prereq}))} progress={progress[key]} onOpen={(n)=>openModule(TRACKS[key].find(m=>m.id===n.id),key)}/>)}
+            <CourseMap key={key} title={label} trackKey={key}
+              nodes={TRACKS[key].map((m,idx)=>({id:m.id,title:m.title,prereq:m.prereq,index:idx}))}
+              progress={progress[key]}
+              onOpen={(n)=>openModule(TRACKS[key].find(m=>m.id===n.id),key)}/>)}
         </div>
       </section>}
 
@@ -1317,8 +1021,24 @@ function App(){
           {WEEKLY.map(c=><div key={c.id} className="p-4 rounded-2xl bg-white/5 border border-white/10">
             <div className="font-semibold">{c.title}</div>
             <div className="text-sm opacity-70 mt-1">Tracks: {c.pulls.map(t=>t[0].toUpperCase()+t.slice(1)).join(' • ')}</div>
-            <button className="mt-3 px-3 py-2 bg-brand text-black rounded" onClick={()=>alert('Challenge started — pulls lessons from listed tracks. (Stubbed)')}>Start</button>
+            <button className="mt-3 px-3 py-2 bg-brand text-black rounded" onClick={()=>alert('Challenge started — pulls lessons from listed tracks. (Stub)')}>Start</button>
           </div>)}
+        </div>
+      </section>}
+
+      {page==='cheats' && <section className="max-w-6xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Cheat Sheets</h2>
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="text-lg font-semibold"><i className="fa-solid fa-terminal mr-2"></i>Linux Commands</div>
+            <button className="px-3 py-2 bg-brand text-black rounded" onClick={()=>{
+              const mount=document.createElement('div'); document.body.appendChild(mount);
+              const root=ReactDOM.createRoot(mount);
+              const close=()=>{root.unmount(); mount.remove();};
+              root.render(<LinuxCheatSheet onClose={close}/>);
+            }}>Open</button>
+          </div>
+          <p className="text-white/80 mt-2 text-sm">Searchable, copy-to-clipboard quick references for navigation, permissions, processes, networking, and archives.</p>
         </div>
       </section>}
 
@@ -1349,6 +1069,7 @@ function App(){
       </div>
     </footer>
 
+    {/* Auth modal */}
     {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuthed={(u,existing)=>{ setUser(u); if(existing) setProgress(existing); }}/>}
   </div>;
 }
@@ -1358,4 +1079,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
 </html>
-
