@@ -1,31 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>CyberSec Academy — Learn, Practice, Master</title>
+  <title>CyberSec Academy — Real-World Cybersecurity</title>
 
-  <!-- Tailwind (CDN JIT) -->
+  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          colors: {
-            brand: { DEFAULT: '#00d4ff', dark: '#0c1e3e', accent: '#8a2be2' }
-          },
-          boxShadow: { glass: '0 8px 30px rgba(2,8,23,.35)' },
-          backgroundImage: {
-            'grid': "linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)",
-          }
+          colors: { brand: { DEFAULT:'#00d4ff', dark:'#0c1e3e', accent:'#8a2be2' } },
+          boxShadow: { glass:'0 8px 30px rgba(2,8,23,.35)' },
+          backgroundImage: { grid:
+            "linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)" }
         }
       }
     }
   </script>
 
-  <!-- Icons & Syntax Highlighting -->
+  <!-- Icons & Highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
@@ -34,11 +30,10 @@
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <!-- Framer Motion (UMD) -->
   <script src="https://unpkg.com/framer-motion@11.3.31/dist/framer-motion.umd.js"></script>
 
-  <!-- Firebase (compat builds, optional) -->
+  <!-- Firebase (compat; optional but recommended for real auth + cloud progress/chat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -46,36 +41,31 @@
   <style>
     html, body, #root { height: 100%; }
     .glass { backdrop-filter: blur(12px); background: linear-gradient(180deg, rgba(12,30,62,.65), rgba(12,30,62,.35)); }
-    .dot { background: radial-gradient(circle at 30% 30%, rgba(0,212,255,.8), transparent 40%),
-                  radial-gradient(circle at 70% 70%, rgba(138,43,226,.6), transparent 45%); }
+    .dot { background:
+      radial-gradient(circle at 30% 30%, rgba(0,212,255,.8), transparent 40%),
+      radial-gradient(circle at 70% 70%, rgba(138,43,226,.6), transparent 45%); }
     .bg-grid { background-size: 48px 48px, 48px 48px; }
     .code-block { border-radius: 12px; overflow: hidden; }
     .scroll-snap-y { scroll-snap-type: y proximity; }
     .snap-child { scroll-snap-align: start; }
-    @keyframes pulse-ring { 0% { transform: scale(.8); opacity: .6; } 80%,100% { transform: scale(1.8); opacity: 0; } }
+    @keyframes pulse-ring { 0% { transform: scale(.8); opacity:.6; } 80%,100% { transform: scale(1.8); opacity:0; } }
   </style>
 </head>
 <body class="bg-brand-dark text-white selection:bg-brand/40">
   <div id="root"></div>
 
-  <!-- APP -->
   <script type="text/babel"
-          data-presets="env,react"
-          data-plugins="proposal-class-properties,proposal-object-rest-spread,proposal-optional-chaining,proposal-nullish-coalescing-operator">
+    data-presets="env,react"
+    data-plugins="proposal-class-properties,proposal-object-rest-spread,proposal-optional-chaining,proposal-nullish-coalescing-operator">
 
-/** ==================
- *  Safe Motion Fallbacks (prevents blank page if UMD name differs)
- *  ================== */
-const __FM = window['framer-motion'] || window.framerMotion || window.FramerMotion || {};
+/* ========= MOTION FALLBACK ========= */
+const __FM = window['framer-motion'] || {};
 const motion = __FM.motion || new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
 const AnimatePresence = __FM.AnimatePresence || (({children}) => React.createElement(React.Fragment, null, children));
 
-/** ==================
- *  Config
- *  ================== */
+/* ========= CONFIG ========= */
 const CONFIG = {
-  THEME_DEFAULT: 'dark',
-  USE_FIREBASE: false, // set to true after you paste your Firebase config below
+  USE_FIREBASE: false, // flip to true after pasting your Firebase config below
   FIREBASE_CONFIG: {
     // apiKey: "YOUR_API_KEY",
     // authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -88,883 +78,825 @@ const CONFIG = {
   SQL_BACKEND_URL: "http://localhost:3000",
 };
 
-/** ==================
- *  Utilities
- *  ================== */
 const { useState, useEffect, useMemo, useRef } = React;
 const cx = (...c)=>c.filter(Boolean).join(' ');
-const wait = (ms)=> new Promise(r=>setTimeout(r, ms));
-const escapeHtml = (s='') => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const wait = (ms)=>new Promise(r=>setTimeout(r, ms));
+const escapeHtml = (s='')=>s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
-/** Random ID */
-const rid = (p='id') => `${p}_${Math.random().toString(36).slice(2,9)}`;
-
-/** Local demo hashing for auth fallback */
-async function sha256(txt) {
-  if (!window.crypto?.subtle) return txt; // ancient browser fallback
-  const enc = new TextEncoder().encode(txt);
-  const hash = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-/** ==================
- *  Tool Knowledge Base
- *  ================== */
-const TOOL_DB = {
-  Wireshark: {
-    what: "Wireshark is a network protocol analyzer that lets you capture and inspect packets.",
-    steps: [
-      "Go to wireshark.org.",
-      "Download installer for your OS.",
-      "Install (Windows needs Npcap).",
-      "Launch, choose an interface, Start capture."
-    ],
-    link: "https://www.wireshark.org/",
-  },
-  "Burp Suite": {
-    what: "Burp Suite is a web security testing platform for intercepting/scanning HTTP(S).",
-    steps: [
-      "Visit ports­wigger.net/burp; download Community/Pro.",
-      "Install; run Burp.",
-      "Set browser proxy to 127.0.0.1:8080.",
-      "Install Burp CA cert for HTTPS interception."
-    ],
-    link: "https://portswigger.net/burp",
-  },
-  Nmap: {
-    what: "Nmap discovers hosts/services and detects versions/OS.",
-    steps: [
-      "Install via apt/brew or nmap.org installer.",
-      "Quick scan: nmap -sS 192.168.1.0/24",
-      "Versions: nmap -sV target",
-      "OS: nmap -O target"
-    ],
-    link: "https://nmap.org/",
-  },
-  "John the Ripper": {
-    what: "John is a fast password cracker for many hash types.",
-    steps: [
-      "Install from openwall.com/john or package manager.",
-      "Put hashes in a file (one per line).",
-      "Run: john --format=raw-md5 --wordlist=rockyou.txt hashes.txt",
-      "Show: john --show hashes.txt"
-    ],
-    link: "https://www.openwall.com/john/",
-  }
-};
-
-/** ==================
- *  Content (story-first)
- *  ================== */
-const FUNDAMENTALS = [
-  {
-    id: 'fun-1',
-    title: 'Module 1 — The Internet Under Attack',
-    story: [
-      {type:'text', content: "Welcome, Analyst. Users can’t log in, web pages crawl, and suspicious logins appear. You’re on-call."},
-      {type:'text', content: "Mission: understand the CIA triad, spot common threats, and triage the incident."},
-      {type:'chips', items:['Wireshark','Nmap']},
-      {type:'info', content: "CIA Triad = Confidentiality, Integrity, Availability. Attacks often target at least one pillar."},
-      {type:'code', lang:'bash', content:`# Quick triage
-whoami
-netstat -tuln
-ps aux | head
-sudo systemctl status ssh`},
-    ],
-    practice: [
-      {type:'task', title:'Drag & Match Threats', mode:'dragmatch',
-       pairs:[
-         ['Phishing','Tricking users to reveal credentials'],
-         ['Malware','Malicious software that harms systems'],
-         ['DDoS','Flooding a service to make it unavailable'],
-         ['SQL Injection','Injecting SQL to manipulate DB queries'],
-       ]},
-      {type:'short', title:'Short Answer: Explain Availability in one sentence.',
-       rubric:{
-         minScore: 0.7,
-         keywords: [
-           {group:['available','availability','uptime'], weight:.5},
-           {group:['authorized','users','legitimate','intended'], weight:.2},
-           {group:['access','accessing','use'], weight:.3},
-         ],
-         modelAnswer: "Availability means authorized users can access systems/data when needed."
-       }
-      }
-    ],
-    quiz: [
-      {q:'Which best describes the CIA triad?',
-       answers:[
-         {t:'Central Intelligence Agency methods', correct:false, why:'Here, CIA = confidentiality, integrity, availability.'},
-         {t:'Confidentiality, Integrity, Availability', correct:true, why:'Correct — these are the three pillars.'},
-         {t:'Cyber Incident Assessment', correct:false, why:'Not a standard term.'},
-         {t:'Computer Information Assurance', correct:false, why:'Not the triad.'},
-       ]},
-    ]
-  },
-  {
-    id: 'fun-2',
-    title: 'Module 2 — Reconnaissance & Network Basics',
-    story: [
-      {type:'text', content:"Incidents often start with recon. Use Nmap to map hosts; verify with Wireshark."},
-      {type:'chips', items:['Nmap','Wireshark']},
-      {type:'code', lang:'bash', content:`# SYN scan subnet
-nmap -sS 192.168.1.0/24
-# Version/OS detection
-nmap -sV -O 192.168.1.1
-# Capture packets (other host)
-sudo wireshark`},
-    ],
-    practice: [
-      {type:'task', title:'What does -sS vs -sV do?', mode:'mc',
-       options:[
-         {t:'-sS stealth SYN scan; -sV version detection', correct:true, why:'SYN is half-open; -sV probes service versions.'},
-         {t:'-sS version detection; -sV stealth scan', correct:false, why:'Reversed.'},
-         {t:'Both are OS detection', correct:false, why:'OS detection is -O.'},
-       ]},
-      {type:'short', title:'Name two signs of port scanning in logs.',
-       rubric:{
-         minScore:.6,
-         keywords:[
-           {group:['many','multiple','repeated'], weight:.2},
-           {group:['ports','port'], weight:.3},
-           {group:['short','quick','rapid','burst','time'], weight:.2},
-           {group:['across','different','hosts','servers','ips'], weight:.3}
-         ],
-         modelAnswer:"Rapid connections to many ports (often across multiple hosts) from one source."
-       }
-      }
-    ],
-    quiz: [
-      {q:'You see repeated connection attempts to many ports across servers. What’s likely happening?',
-       answers:[
-         {t:'Phishing Attack', correct:false, why:'Phishing targets people, not ports.'},
-         {t:'DDoS Attack', correct:false, why:'DDoS is volume to a service, not broad port sweeps.'},
-         {t:'Port Scanning', correct:true, why:'Correct — broad probes across many ports.'},
-         {t:'SQL Injection', correct:false, why:'SQLi abuses DB inputs, not port activity.'},
-       ]},
-    ]
-  },
-];
-
-/** Red/Blue maps */
-const RED_COURSE = [
-  { id:'r1', title:'Recon & OSINT', type:'red', prereq:[] },
-  { id:'r2', title:'Initial Access (Web)', type:'red', prereq:['r1'] },
-  { id:'r3', title:'Lateral Movement', type:'red', prereq:['r2'] },
-  { id:'r4', title:'Privilege Escalation', type:'red', prereq:['r3'] },
-  { id:'r5', title:'Post-Exfil & Cleanup', type:'red', prereq:['r4'] },
-];
-const BLUE_COURSE = [
-  { id:'b1', title:'Log Fundamentals', type:'blue', prereq:[] },
-  { id:'b2', title:'Detection Engineering', type:'blue', prereq:['b1'] },
-  { id:'b3', title:'SIEM Triage & Hunting', type:'blue', prereq:['b2'] },
-  { id:'b4', title:'Incident Response', type:'blue', prereq:['b3'] },
-  { id:'b5', title:'Threat Intel & Purple Ops', type:'blue', prereq:['b4'] },
-];
-
-/** ==================
- *  Auth & Storage
- *  ================== */
-const appState = { firebaseApp:null, auth:null, db:null, user:null, demoUsers:{} };
+/* ========= Auth/DB ========= */
+const appState = { firebaseApp:null, auth:null, db:null, user:null };
 
 function initFirebaseIfNeeded() {
-  if (CONFIG.USE_FIREBASE && CONFIG.FIREBASE_CONFIG && CONFIG.FIREBASE_CONFIG.apiKey) {
-    try {
-      appState.firebaseApp = firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
-      appState.auth = firebase.auth();
-      appState.db = firebase.firestore();
-    } catch(e) {
-      console.warn('Firebase init skipped:', e?.message);
-    }
-  }
+  if (!CONFIG.USE_FIREBASE) return;
+  if (!CONFIG.FIREBASE_CONFIG?.apiKey) return;
+  try {
+    appState.firebaseApp = firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
+    appState.auth = firebase.auth();
+    appState.db = firebase.firestore();
+  } catch(e){ console.warn('Firebase init:', e?.message); }
 }
 
-async function signUp(email, password) {
-  if (appState.auth) {
-    const res = await appState.auth.createUserWithEmailAndPassword(email, password);
-    return { uid: res.user.uid, email: res.user.email };
-  } else {
-    const hash = await sha256(password);
-    const uid = rid('uid');
-    const users = JSON.parse(localStorage.getItem('demoUsers') || '{}');
-    users[email] = { hash, uid };
-    localStorage.setItem('demoUsers', JSON.stringify(users));
-    return { uid, email };
-  }
-}
-async function signIn(email, password) {
-  if (appState.auth) {
-    const res = await appState.auth.signInWithEmailAndPassword(email, password);
-    return { uid: res.user.uid, email: res.user.email };
-  } else {
-    const users = JSON.parse(localStorage.getItem('demoUsers') || '{}');
-    const u = users[email];
-    if (!u) throw new Error('User not found. Please sign up.');
-    const hash = await sha256(password);
-    if (hash !== u.hash) throw new Error('Invalid credentials.');
-    return { uid: u.uid, email };
-  }
-}
-async function signOut() { if (appState.auth) await appState.auth.signOut(); appState.user = null; }
+async function sha256(txt){ if(!crypto?.subtle) return txt; const enc=new TextEncoder().encode(txt);
+  const h=await crypto.subtle.digest('SHA-256',enc); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
 
-async function saveProgress(uid, data) {
-  if (CONFIG.USE_FIREBASE && appState.db) {
-    await appState.db.collection('users').doc(uid).set({ email: appState.user.email }, { merge:true });
-    await appState.db.collection('users').doc(uid).collection('progress').doc('main').set(data, { merge:true });
-  } else if (CONFIG.USE_SQL_BACKEND && CONFIG.SQL_BACKEND_URL) {
-    await fetch(`${CONFIG.SQL_BACKEND_URL}/api/progress/${uid}`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
-    }).catch(()=>{});
+async function signUp(email, password){
+  if(appState.auth){
+    const res=await appState.auth.createUserWithEmailAndPassword(email,password);
+    return { uid:res.user.uid, email:res.user.email };
+  } else {
+    const hash=await sha256(password), uid=`uid_${Math.random().toString(36).slice(2,9)}`;
+    const users=JSON.parse(localStorage.getItem('demoUsers')||'{}'); users[email]={hash,uid};
+    localStorage.setItem('demoUsers',JSON.stringify(users)); return { uid,email };
+  }
+}
+async function signIn(email, password){
+  if(appState.auth){
+    const res=await appState.auth.signInWithEmailAndPassword(email,password);
+    return { uid:res.user.uid, email:res.user.email };
+  } else {
+    const users=JSON.parse(localStorage.getItem('demoUsers')||'{}'); const u=users[email];
+    if(!u) throw new Error('User not found. Please sign up.');
+    const hash=await sha256(password); if(hash!==u.hash) throw new Error('Invalid credentials.');
+    return { uid:u.uid, email };
+  }
+}
+async function signOut(){ if(appState.auth) await appState.auth.signOut(); appState.user=null; }
+
+async function saveProgress(uid,data){
+  if(CONFIG.USE_FIREBASE && appState.db){
+    await appState.db.collection('users').doc(uid).set({ email: appState.user.email },{merge:true});
+    await appState.db.collection('users').doc(uid).collection('progress').doc('main').set(data,{merge:true});
   } else {
     localStorage.setItem(`progress_${uid}`, JSON.stringify(data));
   }
 }
-async function loadProgress(uid) {
-  if (CONFIG.USE_FIREBASE && appState.db) {
-    const doc = await appState.db.collection('users').doc(uid).collection('progress').doc('main').get();
-    return doc.exists ? doc.data() : null;
-  } else if (CONFIG.USE_SQL_BACKEND && CONFIG.SQL_BACKEND_URL) {
-    try {
-      const res = await fetch(`${CONFIG.SQL_BACKEND_URL}/api/progress/${uid}`);
-      if (res.ok) return await res.json();
-    } catch {}
-    return null;
+async function loadProgress(uid){
+  if(CONFIG.USE_FIREBASE && appState.db){
+    const d=await appState.db.collection('users').doc(uid).collection('progress').doc('main').get();
+    return d.exists? d.data(): null;
   } else {
-    const raw = localStorage.getItem(`progress_${uid}`);
-    return raw ? JSON.parse(raw) : null;
+    const raw=localStorage.getItem(`progress_${uid}`); return raw? JSON.parse(raw): null;
   }
 }
 
-/** ==================
- *  Grading Engine
- *  ================== */
-function gradeShortAnswer(answer, rubric) {
-  const a = (answer||'').toLowerCase();
-  let score = 0;
-  const notes = [];
-  for (const kw of rubric.keywords) {
-    const hit = kw.group.some(g => a.includes(g.toLowerCase()));
-    if (hit) { score += kw.weight; notes.push(`✓ Mentioned ${kw.group[0]}`); }
-    else { notes.push(`• Consider including: ${kw.group.slice(0,2).join(' / ')}`); }
+/* ========= Tools KB (clickable explainers) ========= */
+const TOOL_DB = {
+  Wireshark:{ what:"Network protocol analyzer to capture/inspect packets.",
+    steps:["Go to wireshark.org","Download for your OS (Windows/macOS/Linux)","Install (Npcap on Windows)","Open & select interface → Start capture."],
+    link:"https://www.wireshark.org/" },
+  "Burp Suite":{ what:"Web security testing proxy (intercept, modify, scan).",
+    steps:["Visit ports­wigger.net/burp","Install & run","Configure browser proxy 127.0.0.1:8080","Install Burp CA for HTTPS."],
+    link:"https://portswigger.net/burp" },
+  Nmap:{ what:"Network scanner for hosts/services, version & OS detection.",
+    steps:["Install via apt/brew or nmap.org","Quick scan: nmap -sS 192.168.1.0/24","Version: nmap -sV target","OS: nmap -O target"],
+    link:"https://nmap.org/" },
+  Zeek:{ what:"Network security monitor that parses traffic into logs.",
+    steps:["Install via pkg manager or zeek.org","Run zeek on pcap/interface","Review conn.log, http.log, dns.log","Pivot findings into SIEM."],
+    link:"https://zeek.org/" },
+  "ELK Stack":{ what:"Elasticsearch + Logstash + Kibana for search/analytics.",
+    steps:["Use Elastic Cloud or Docker compose","Ship logs (Filebeat/Winlogbeat)","Create index patterns in Kibana","Build detections/visualizations."],
+    link:"https://www.elastic.co/elk-stack" },
+  Splunk:{ what:"SIEM/observability platform for logs/alerts/dashboards.",
+    steps:["Get Splunk Free/Trial","Forward logs via UF/HTTP Event Collector","Search with SPL","Create alerts & dashboards."],
+    link:"https://www.splunk.com/" },
+  Snyk:{ what:"DevSecOps scanning for dependencies, containers, IaC.",
+    steps:["Sign up at snyk.io","Connect Git repo","Enable SCA/SAST/Container/IaC scans","Fix via PRs with patches."],
+    link:"https://snyk.io/" },
+  Trivy:{ what:"Container & IaC scanner (vulns/misconfig).",
+    steps:["Install (brew/apt) aquasecurity/trivy","Scan image: trivy image nginx:latest","Scan IaC: trivy config ./infra","Export reports."],
+    link:"https://aquasecurity.github.io/trivy/" },
+  Terraform:{ what:"IaC tool to provision infra declaratively.",
+    steps:["Install HashiCorp terraform","Write .tf files","Validate & plan","terraform apply (with approval)"],
+    link:"https://www.terraform.io/" },
+  Kubernetes:{ what:"Container orchestration platform.",
+    steps:["Install kubectl & kind/minikube","Create cluster","Deploy manifests/Helm","Use RBAC/NetworkPolicies/PSA."],
+    link:"https://kubernetes.io/" },
+  "IBM ART":{ what:"Adversarial Robustness Toolbox for AI security.",
+    steps:["pip install adversarial-robustness-toolbox","Wrap model in ART classifier","Run FGSM/PGD tests","Harden with adversarial training."],
+    link:"https://adversarial-robustness-toolbox.org/" }
+};
+
+/* ========= Track titles (30 each) ========= */
+const FOUNDATIONS_30 = [
+  "The Internet Under Attack","Recon & Network Basics","Web App Security 101","Authentication & Authorization",
+  "Intro to Cryptography","Secure Coding (Top 10)","Linux Security Fundamentals","Windows Security Fundamentals",
+  "Cloud Security Basics","Threat Modeling","Security Policies & Risk","Privacy & Compliance",
+  "Email Security & Phishing","Endpoint Security","Patch & Vulnerability Mgmt",
+  "Password & MFA Strategy","Backups & Ransomware Basics","Wireless Security","Social Engineering Defense",
+  "Secure Browsing & Privacy","Secure File Transfer","Logging Fundamentals","Intro to SIEM",
+  "Basic Incident Handling","Forensics Basics","Threat Intelligence 101","Secure Remote Work",
+  "Security Culture","Security Metrics","Final Foundations Capstone"
+];
+
+const BLUE_30 = [
+  "Log Sources Deep Dive","Windows Eventing (Sysmon)","Linux Auditd & Journald","Network Telemetry (Netflow/PCAP)",
+  "Zeek for Defenders","DNS Security","Web Proxy & TLS Insights","Identity: AD & Azure AD Basics",
+  "Detection Engineering 1","Alert Triage & Escalation","ELK/Splunk Essentials","Use Case Development",
+  "Hunting with Queries","Command & Control Patterns","Brute Force & Password Spray",
+  "Persistence Techniques (Blue)","Privilege Escalation Detection","Lateral Movement Detection",
+  "Data Exfil & DLP Basics","Cloud Logs (AWS/GCP/Azure)","Container/K8s Audit Logs",
+  "Endpoint Telemetry (EDR)","Malware Triage Intro","Sandboxing & Detonation",
+  "Incident Response Runbooks","Purple Team Basics","Reporting & Post-Incident",
+  "Metrics & MTTR","Automation (SOAR) Intro","Blue Team Capstone"
+];
+
+const RED_30 = [
+  "OSINT & Recon","Web Enumeration","Auth Bypass Theory","Input & Serialization Bugs",
+  "File Upload & Path Traversal","Business Logic Awareness","Network Scanning & Evasion",
+  "Service Enumeration","Password Attacks (Ethical)","Phishing Pretexting (Ethical)",
+  "Initial Access Theory","Post-Exploitation Basics","Pivoting & Tunneling (Theory)",
+  "Linux Privesc Theory","Windows Privesc Theory","Credential Dumping (Theory)",
+  "AV/EDR Evasion (Concepts)","C2 Channels (Concepts)","Data Exfiltration (Concepts)",
+  "OPSEC for Red Teams","Reporting & Debriefing","Emulating Threats (MITRE ATT&CK)",
+  "Scripting Essentials","Writing PoCs Safely","Rules of Engagement & Law",
+  "Lab Hygiene & Safety","Purple Collaboration","Kill Chain Mapping",
+  "Campaign Planning","Red Team Capstone"
+];
+
+const DEVSECOPS_30 = [
+  "DevSecOps Mindset","Git Security & Secrets","SAST Fundamentals","SCA & SBOM",
+  "DAST & API Testing","Container Security Basics","Dockerfile Hardening",
+  "Image Scanning (Trivy)","Orchestrator Security (K8s)","K8s RBAC/Network Policies",
+  "IaC Security (Terraform)","Policy as Code (OPA)","Secrets Mgmt (Vault/KMS)",
+  "CI Pipeline Threats","Secure CI/CD (Jenkins/GitHub Actions)","Supply Chain Risks (Sigstore)",
+  "Artifact Signing","Runtime Security (Falco)","Shift-Left Threat Modeling",
+  "Secure Release Gates","Blue/Green & Canary Safeguards","Cloud Posture Mgmt",
+  "Monitoring & SLOs","Chaos & GameDays (Safe)","Compliance as Code",
+  "Incident Response in DevOps","Rollbacks & Hotfix Safety","Cost & Risk Trade-offs",
+  "DevSecOps at Scale","DevSecOps Capstone"
+];
+
+const AISEC_30 = [
+  "AI Security Landscape","Threat Modeling ML Systems","Data Poisoning Concepts","Model Theft & Extraction",
+  "Adversarial Examples (Concepts)","Membership Inference (Concepts)","Model Robustness Basics",
+  "Evaluation & Red Teaming AI","Safety Guardrails (Concepts)","Prompt Injection Defense (Concepts)",
+  "Secure MLOps Pipelines","Dataset Provenance","Model Signing & Registry",
+  "Runtime Monitoring (AI)","PII & Privacy in ML","Synthetic Data Caveats",
+  "LLM Application Risks","Vector DB Risks","Responsible Disclosure for AI",
+  "Adversarial Training (Concepts)","Feature Squeezing (Concepts)","Detection of Adversarials",
+  "Human-in-the-Loop Review","AI Supply Chain Risks","API Security for AI Apps",
+  "GPU/Container Hardening","Policy & Ethics Brief","Incident Response for AI",
+  "Metrics for AI Risk","AI Security Capstone"
+];
+
+/* ========= Module generator ========= */
+function defaultModule(id, title, tools=[], objective="Learn & practice core skills") {
+  const chipTools = tools.slice(0,3);
+  return {
+    id, title,
+    story:[
+      {type:'text', content:`Scenario: ${title}. You will learn how to approach this problem the way a practitioner would.`},
+      {type:'chips', items: chipTools},
+      {type:'info', content:`Objective: ${objective}`},
+      {type:'code', lang:'bash', content:`# Try these commands in the lab terminal
+whoami
+netstat -tuln
+# Add commands relevant to: ${title}`}
+    ],
+    practice:[
+      {type:'task', title:'Concept Check', mode:'mc',
+       options:[
+         {t:`${title}: pick the MOST relevant action`, correct:true, why:'This reinforces key decision-making.'},
+         {t:'An unrelated action', correct:false, why:'This would be a misstep in this scenario.'},
+         {t:'Another unrelated action', correct:false, why:'Stay focused on the scenario’s goal.'},
+       ]},
+      {type:'short', title:`Explain the main risk in: ${title}`,
+        rubric:{
+          minScore:.6,
+          keywords:[{group:['risk','impact'],weight:.3},{group:['detect','prevent','mitigate'],weight:.4},{group:['monitor','logs','evidence'],weight:.3}],
+          modelAnswer:`Identify the primary risk, how to mitigate, and how to verify via telemetry.`
+        }
+      }
+    ],
+    quiz:[
+      {q:`What is the first step you’d take in ${title}?`,
+       answers:[
+         {t:'Gather context & validate signals', correct:true, why:'Ground truth first.'},
+         {t:'Immediately change configs in prod', correct:false, why:'Too risky without evidence.'},
+         {t:'Ignore it and wait', correct:false, why:'Delays compound impact.'},
+         {t:'Notify press', correct:false, why:'Not appropriate at this stage.'}
+       ]}
+    ]
+  };
+}
+
+/* Seed fully-authored modules per track (a few deep ones) */
+const AUTHORED = {
+  foundations: {
+    'The Internet Under Attack': {
+      id:'fun-1', title:'The Internet Under Attack',
+      story:[
+        {type:'text', content:"Users can’t log in, web pages crawl, suspicious logins appear. You’re on-call."},
+        {type:'chips', items:['Wireshark','Nmap']},
+        {type:'info', content:"CIA Triad: Confidentiality, Integrity, Availability. Attacks often hit at least one pillar."},
+        {type:'code', lang:'bash', content:`# Quick triage
+whoami
+netstat -tuln
+ps aux | head
+sudo systemctl status ssh`}
+      ],
+      practice:[
+        {type:'task', title:'Drag & Match Threats', mode:'dragmatch',
+         pairs:[
+           ['Phishing','Tricking users to reveal credentials'],
+           ['Malware','Malicious software that harms systems'],
+           ['DDoS','Flooding a service to make it unavailable'],
+           ['SQL Injection','Injecting SQL to manipulate DB queries'],
+         ]},
+        {type:'short', title:'Explain Availability (1 sentence).',
+         rubric:{ minScore:.7,
+           keywords:[
+             {group:['availability','uptime'],weight:.4},
+             {group:['authorized','legitimate','intended'],weight:.2},
+             {group:['access','use'],weight:.4}
+           ],
+           modelAnswer:"Availability means authorized users can access systems/data when needed."}
+        }
+      ],
+      quiz:[ {q:'Which best describes CIA triad?',
+        answers:[
+          {t:'Central Intelligence Agency methods', correct:false, why:'Here CIA = confidentiality, integrity, availability.'},
+          {t:'Confidentiality, Integrity, Availability', correct:true, why:'Correct.'},
+          {t:'Cyber Incident Assessment', correct:false, why:'Not standard.'},
+          {t:'Computer Information Assurance', correct:false, why:'Not the triad.'}
+        ]}]
+    },
+    'Recon & Network Basics': {
+      id:'fun-2', title:'Recon & Network Basics',
+      story:[
+        {type:'text', content:"Map hosts/services with Nmap; validate flows with Wireshark."},
+        {type:'chips', items:['Nmap','Wireshark']},
+        {type:'code', lang:'bash', content:`# SYN scan subnet
+nmap -sS 192.168.1.0/24
+# Version/OS detection
+nmap -sV -O 192.168.1.1`},
+      ],
+      practice:[
+        {type:'task', title:'Flags knowledge', mode:'mc',
+         options:[
+           {t:'-sS is SYN stealth; -sV is version detection', correct:true, why:'Correct mapping.'},
+           {t:'-sS version; -sV stealth', correct:false, why:'Reversed.'},
+           {t:'Both are OS detection', correct:false, why:'OS is -O.'},
+         ]},
+      ],
+      quiz:[{q:'Port scanning symptoms across servers likely means…',
+        answers:[
+          {t:'Phishing', correct:false, why:'Targets users not ports.'},
+          {t:'DDoS', correct:false, why:'Volume to few services.'},
+          {t:'Port scanning', correct:true, why:'Broad probes many ports.'},
+          {t:'SQLi', correct:false, why:'DB input abuse, not port activity.'}
+        ]}]
+    }
+  },
+  devsecops: {
+    'DevSecOps Mindset': defaultModule('dso-1','DevSecOps Mindset',['Snyk','Trivy','Terraform'],
+      'Understand shifting security left, shared ownership, and continuous risk reduction.'),
+    'Git Security & Secrets': defaultModule('dso-2','Git Security & Secrets',['Snyk','Trivy'],'Prevent secrets in repos; enable scanners & pre-commit hooks.')
+  },
+  asec: {
+    'AI Security Landscape': defaultModule('ais-1','AI Security Landscape',['IBM ART'],'Recognize AI-specific risks & controls.'),
+    'Threat Modeling ML Systems': defaultModule('ais-2','Threat Modeling ML Systems',['IBM ART'],'Model assets, threats, controls across data/model/runtime.')
+  },
+  blue: {
+    'Log Sources Deep Dive': defaultModule('blu-1','Log Sources Deep Dive',['ELK Stack','Splunk','Zeek'],'Know what to collect and why.'),
+    'Zeek for Defenders': defaultModule('blu-2','Zeek for Defenders',['Zeek','ELK Stack'],'Parse packet data into rich logs.')
+  },
+  red: {
+    'OSINT & Recon': defaultModule('red-1','OSINT & Recon',['Nmap'],'Discover public information ethically and safely.'),
+    'Web Enumeration': defaultModule('red-2','Web Enumeration',['Burp Suite','Nmap'],'Catalog endpoints/tech without exploiting.')
   }
-  score = Math.min(1, Math.max(0, score));
-  const ok = score >= (rubric.minScore ?? .7);
-  const feedback = ok
-    ? "Great! You hit the key ideas."
+};
+
+/* ========= Build tracks with 30 modules ========= */
+function buildTrack(name, titles, toolsetKey) {
+  const out = [];
+  for (let i=0;i<titles.length;i++){
+    const t=titles[i];
+    const authored = AUTHORED[name]?.[t];
+    if (authored) out.push(authored);
+    else out.push(defaultModule(`${name}-${i+1}`, t, Object.keys(TOOL_DB), `Practical objectives for: ${t}`));
+  }
+  return out;
+}
+
+const TRACKS = {
+  foundations: buildTrack('foundations', FOUNDATIONS_30),
+  blue:        buildTrack('blue', BLUE_30),
+  red:         buildTrack('red', RED_30),
+  devsecops:   buildTrack('devsecops', DEVSECOPS_30),
+  asec:        buildTrack('asec', AISEC_30)
+};
+
+/* ========= Grading engine ========= */
+function gradeShortAnswer(answer, rubric){
+  const a=(answer||'').toLowerCase(); let score=0; const notes=[];
+  for(const kw of rubric.keywords){
+    const hit=kw.group.some(g=>a.includes(g.toLowerCase()));
+    if(hit){ score+=kw.weight; notes.push(`✓ Mentioned ${kw.group[0]}`); }
+    else { notes.push(`• Include: ${kw.group.slice(0,2).join(' / ')}`); }
+  }
+  score=Math.max(0,Math.min(1,score)); const ok=score>=(rubric.minScore??.7);
+  const feedback= ok? "Great! You hit the key ideas."
     : `Not quite. Model guidance:\n${rubric.modelAnswer}\n\nTips:\n- ${notes.join('\n- ')}`;
   return { score, ok, feedback };
 }
 
-/** ==================
- *  UI Bits
- *  ================== */
-function Badge({children, tone='brand'}) {
-  const palette = {
-    brand:'bg-brand/20 text-brand ring-1 ring-brand/40',
-    green:'bg-green-500/20 text-green-300 ring-1 ring-green-500/40',
-    red:'bg-red-500/20 text-red-300 ring-1 ring-red-500/40',
-    gray:'bg-white/10 text-white/70 ring-1 ring-white/10'
-  };
-  return <span className={cx("px-2 py-1 rounded-full text-xs font-semibold", palette[tone])}>{children}</span>
+/* ========= Shared UI ========= */
+function Badge({children, tone='brand'}){
+  const m={ brand:'bg-brand/20 text-brand ring-1 ring-brand/40',
+            green:'bg-green-500/20 text-green-300 ring-1 ring-green-500/40',
+            gray:'bg-white/10 text-white/70 ring-1 ring-white/10'};
+  return <span className={cx("px-2 py-1 rounded-full text-xs font-semibold", m[tone])}>{children}</span>;
+}
+function ToolChip({name,onClick}){
+  return <button className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-sm border border-white/10"
+      onClick={onClick}><i className="fa-solid fa-circle-info mr-2"></i>{name}</button>;
+}
+function ToolModal({tool,onClose}){
+  if(!tool) return null; const t=TOOL_DB[tool];
+  return <div className="fixed inset-0 z-50 grid place-items-center p-4">
+    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
+      <div className="flex items-center justify-between mb-4"><h3 className="text-xl font-semibold">{tool}</h3>
+        <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
+      <p className="text-white/80 mb-3">{t.what}</p>
+      <ol className="list-decimal list-inside space-y-2 mb-4">{t.steps.map((s,i)=><li key={i}>{s}</li>)}</ol>
+      <a className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg" href={t.link} target="_blank" rel="noreferrer">
+        <i className="fa-solid fa-up-right-from-square"></i> Official Site</a>
+    </motion.div>
+  </div>;
+}
+function FullscreenButton({targetRef}){
+  const go=async()=>{const el=targetRef.current; if(!el) return;
+    if(!document.fullscreenElement) await el.requestFullscreen?.(); else await document.exitFullscreen?.();};
+  return <button onClick={go} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm">
+    <i className="fa-solid fa-maximize mr-2"></i>Fullscreen</button>;
 }
 
-function ToolChip({name, onClick}) {
-  return (
-    <button className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-sm border border-white/10"
-            onClick={onClick} aria-label={`Learn about ${name}`}>
-      <i className="fa-solid fa-circle-info mr-2"></i>{name}
-    </button>
-  );
-}
-
-function ToolModal({tool, onClose}) {
-  if (!tool) return null;
-  const t = TOOL_DB[tool];
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-label="Close"></div>
-      <motion.div initial={{y:60,opacity:0}} animate={{y:0,opacity:1}} className="glass shadow-glass rounded-2xl p-6 w-full max-w-xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold">{tool}</h3>
-          <button onClick={onClose} className="text-white/70 hover:text-white"><i className="fa-solid fa-xmark"></i></button>
-        </div>
-        <p className="text-white/80 mb-4">{t.what}</p>
-        <ol className="list-decimal list-inside space-y-2 mb-4">
-          {t.steps.map((s, i)=> <li key={i}>{s}</li>)}
-        </ol>
-        <a className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg" href={t.link} target="_blank" rel="noreferrer">
-          <i className="fa-solid fa-up-right-from-square"></i> Open Official Site
-        </a>
-      </motion.div>
-    </div>
-  );
-}
-
-function FullscreenButton({targetRef}) {
-  const goFull = async () => {
-    const el = targetRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement) { await el.requestFullscreen?.(); }
-    else { await document.exitFullscreen?.(); }
-  };
-  return (
-    <button onClick={goFull} className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm">
-      <i className="fa-solid fa-maximize mr-2"></i>Toggle Fullscreen
-    </button>
-  );
-}
-
-/** Terminal sim (safe) */
-function Terminal({script=[]}) {
-  const [lines, setLines] = useState(["user@academy:~$"]);
-  const [value, setValue] = useState("");
-  const [i, setI] = useState(0);
-
-  const runLine = (cmd) => {
-    const out = [];
-    const c = cmd.trim();
-    if (!c) return;
-    if (c.startsWith('nmap')) out.push("Starting Nmap 7.94 ...\n22/tcp open ssh\n80/tcp open http\n443/tcp open https");
-    else if (c.startsWith('whoami')) out.push("analyst");
-    else if (c.startsWith('netstat')) out.push("tcp 0 0 0.0.0.0:22 LISTEN\ntcp 0 0 0.0.0.0:80 LISTEN");
-    else if (c==='help') out.push("Try: whoami, netstat -tuln, nmap -sS 127.0.0.1");
-    else out.push("Command not recognized in simulation. Try 'help'.");
-    setLines(prev => [...prev, `user@academy:~$ ${escapeHtml(cmd)}`, ...out]);
-    setValue("");
-  };
-
-  const runScript = async () => {
-    for (let j=i; j<script.length; j++) {
-      setLines(prev => [...prev, `user@academy:~$ ${escapeHtml(script[j].cmd)}`, script[j].out]);
-      setI(j+1);
-      await wait(500);
-    }
-  };
-
-  return (
-    <div className="rounded-2xl overflow-hidden border border-white/10">
-      <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
-        <div className="text-xs text-white/60">CyberSec Lab</div>
-        <div className="space-x-2">
-          <button onClick={()=>{ setLines(["user@academy:~$"]); setI(0); }} className="text-xs px-2 py-1 bg-white/10 rounded">Reset</button>
-          <button onClick={runScript} className="text-xs px-2 py-1 bg-brand text-black rounded">Run Lesson Sequence</button>
-        </div>
-      </div>
-      <div className="bg-black/60 p-4 min-h-[220px] font-mono text-sm whitespace-pre-wrap">
-        {lines.join('\n')}
-      </div>
-      <div className="bg-black/70 p-2 flex gap-2">
-        <input value={value} onChange={e=>setValue(e.target.value)} onKeyDown={e=> e.key==='Enter' && runLine(value)}
-               className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2 outline-none"
-               placeholder="Type a command (try: whoami, nmap -sS 127.0.0.1)"/>
-        <button onClick={()=>runLine(value)} className="px-4 py-2 rounded bg-white/10 hover:bg-white/20">Run</button>
+/* ========= Labs ========= */
+function Terminal({script=[]}){
+  const [lines,setLines]=useState(["user@academy:~$"]); const [v,setV]=useState(""); const [i,setI]=useState(0);
+  const run=(cmd)=>{ const out=[]; const c=cmd.trim(); if(!c) return;
+    if(c.startsWith('nmap')) out.push("Starting Nmap...\n22/tcp open ssh\n80/tcp open http\n443/tcp open https");
+    else if(c==='whoami') out.push("analyst");
+    else if(c.startsWith('netstat')) out.push("tcp 0 0 0.0.0.0:22 LISTEN\nhttp :80 LISTEN");
+    else if(c==='help') out.push("Try: whoami, netstat -tuln, nmap -sS 127.0.0.1");
+    else out.push("Not recognized in simulation. Try 'help'.");
+    setLines(p=>[...p,`user@academy:~$ ${escapeHtml(cmd)}`,...out]); setV(""); };
+  const runScript=async()=>{ for(let j=i;j<script.length;j++){ setLines(p=>[...p,`user@academy:~$ ${escapeHtml(script[j].cmd)}`,script[j].out]); setI(j+1); await wait(400);} };
+  return <div className="rounded-2xl overflow-hidden border border-white/10">
+    <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
+      <div className="text-xs text-white/60">CyberSec Lab</div>
+      <div className="space-x-2">
+        <button onClick={()=>{setLines(["user@academy:~$"]); setI(0);}} className="text-xs px-2 py-1 bg-white/10 rounded">Reset</button>
+        <button onClick={runScript} className="text-xs px-2 py-1 bg-brand text-black rounded">Run Lesson Sequence</button>
       </div>
     </div>
-  );
+    <div className="bg-black/60 p-4 min-h-[220px] font-mono text-sm whitespace-pre-wrap">{lines.join('\n')}</div>
+    <div className="bg-black/70 p-2 flex gap-2">
+      <input className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" value={v}
+        onChange={e=>setV(e.target.value)} onKeyDown={e=>e.key==='Enter'&&run(v)} placeholder="Type: whoami | nmap -sS 127.0.0.1 | help"/>
+      <button onClick={()=>run(v)} className="px-4 py-2 rounded bg-white/10 hover:bg-white/20">Run</button>
+    </div>
+  </div>;
 }
 
-/** Drag & Match */
-function DragMatch({pairs, onComplete}) {
-  const [answers, setAnswers] = useState({});
-  const left = pairs.map(([L])=>L);
-  const right = useMemo(()=>pairs.map(([_,R])=>R).sort(()=>Math.random()-0.5), [pairs]);
-  const isDone = left.every(l => answers[l]);
-  return (
-    <div>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          {left.map(L=>(
-            <div key={L} className="p-3 rounded-lg bg-white/5 border border-white/10">
-              <div className="text-sm mb-2 font-semibold">{L}</div>
-              <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-2"
-                      defaultValue=""
-                      onChange={e=> setAnswers(prev=>({...prev, [L]: e.target.value}))}>
-                <option value="" disabled>Match description…</option>
-                {right.map(R=> <option key={R} value={R}>{R}</option>)}
-              </select>
-            </div>
-          ))}
-        </div>
-        <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-          <div className="text-sm opacity-70 mb-2">Descriptions</div>
-          <ul className="space-y-2 list-disc list-inside">{right.map(R => <li key={R}>{R}</li>)}</ul>
-        </div>
+/* ========= Practice widgets ========= */
+function DragMatch({pairs,onComplete}){
+  const [ans,setAns]=useState({}); const L=pairs.map(([l])=>l);
+  const R=useMemo(()=>pairs.map(([_,r])=>r).sort(()=>Math.random()-0.5),[pairs]);
+  const ready=L.every(l=>ans[l]);
+  return <div>
+    <div className="grid md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        {L.map(l=><div key={l} className="p-3 rounded bg-white/5 border border-white/10">
+          <div className="text-sm mb-2 font-semibold">{l}</div>
+          <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-2" defaultValue=""
+            onChange={e=>setAns(p=>({...p,[l]:e.target.value}))}>
+            <option value="" disabled>Match description…</option>
+            {R.map(r=><option key={r} value={r}>{r}</option>)}
+          </select></div>)}
       </div>
-      <div className="mt-4 flex gap-2">
-        <button className="px-4 py-2 rounded bg-brand text-black font-semibold disabled:opacity-50"
-                disabled={!isDone}
-                onClick={()=>{
-                  const ok = pairs.every(([L,R])=>answers[L]===R);
-                  onComplete(ok, ok ? "Excellent — all matches correct!" : "Some matches are off. Check the definitions on the right and try again.");
-                }}>Check Answers</button>
-        <button className="px-4 py-2 rounded bg-white/10" onClick={()=>setAnswers({})}>Reset</button>
+      <div className="p-3 rounded bg-white/5 border border-white/10">
+        <div className="text-sm opacity-70 mb-2">Descriptions</div>
+        <ul className="list-disc list-inside space-y-2">{R.map(r=><li key={r}>{r}</li>)}</ul>
       </div>
     </div>
-  );
+    <div className="mt-3 flex gap-2">
+      <button disabled={!ready} className="px-4 py-2 bg-brand text-black rounded disabled:opacity-50"
+        onClick={()=>{ const ok=pairs.every(([l,r])=>ans[l]===r);
+          onComplete(ok, ok? "Excellent — all correct.":"Some mismatches. Re-check the descriptions and try again.");
+        }}>Check</button>
+      <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>setAns({})}>Reset</button>
+    </div>
+  </div>;
+}
+function MCQuestion({options,onResult}){
+  const [c,setC]=useState(null); const [locked,setLocked]=useState(false);
+  return <div className="space-y-2">
+    {options.map((o,i)=><button key={i} onClick={()=>!locked&&setC(i)}
+      className={cx("w-full text-left px-4 py-3 rounded border", c===i? "bg-white/15 border-white/20":"bg-white/5 hover:bg-white/10 border-white/10")}>{o.t}</button>)}
+    <div className="flex gap-2 pt-2">
+      {!locked && <button className="px-4 py-2 bg-brand text-black rounded" onClick={()=>{
+        if(c==null) return; setLocked(true); const ok=options[c].correct;
+        onResult(ok, options[c].why, options.find(x=>x.correct)?.t);
+      }}>Submit</button>}
+      {locked && <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{setC(null); setLocked(false);}}>Try Again</button>}
+    </div>
+  </div>;
+}
+function ShortAnswer({rubric,onResult}){
+  const [v,setV]=useState(""); const [fb,setFb]=useState(null); const [ok,setOk]=useState(false);
+  return <div className="space-y-2">
+    <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded p-3" value={v} onChange={e=>setV(e.target.value)}
+      placeholder="Type your answer…"></textarea>
+    <div className="flex gap-2">
+      <button className="px-4 py-2 bg-brand text-black rounded" onClick={()=>{
+        const res=gradeShortAnswer(v,rubric); setFb(res.feedback); setOk(res.ok); onResult(res.ok,res.feedback);
+      }}>Check</button>
+      <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{setV(""); setFb(null); setOk(false);}}>Try Again</button>
+    </div>
+    {fb && <div className={cx("p-3 rounded border", ok? "bg-green-500/10 border-green-500/30":"bg-red-500/10 border-red-500/30")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
+  </div>;
 }
 
-/** MCQ with explanations + retry */
-function MCQuestion({options, onResult}) {
-  const [choice, setChoice] = useState(null);
-  const [locked, setLocked] = useState(false);
-  return (
-    <div className="space-y-2">
-      {options.map((o,i)=>(
-        <button key={i}
-          onClick={()=>!locked && setChoice(i)}
-          className={cx("w-full text-left px-4 py-3 rounded-lg border",
-            choice===i ? "bg-white/15 border-white/20" : "bg-white/5 hover:bg-white/10 border-white/10"
-          )}>
-          {o.t}
-        </button>
-      ))}
-      <div className="flex gap-2 pt-2">
-        {!locked && <button className="px-4 py-2 bg-brand text-black rounded"
-          onClick={()=>{
-            if (choice==null) return;
-            setLocked(true);
-            const correct = options[choice].correct;
-            onResult(correct, options[choice].why, options.find(x=>x.correct)?.t);
-          }}>Submit</button>}
-        {locked && <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setChoice(null); setLocked(false); }}>Try Again</button>}
-      </div>
-    </div>
-  );
-}
-
-/** Short Answer with rubric grading + retry */
-function ShortAnswer({rubric, onResult}) {
-  const [val, setVal] = useState("");
-  const [feedback, setFeedback] = useState(null);
-  const [ok, setOk] = useState(false);
-  return (
-    <div className="space-y-2">
-      <textarea rows={4} value={val} onChange={e=>setVal(e.target.value)}
-        className="w-full bg-black/40 border border-white/10 rounded p-3" placeholder="Type your answer…"></textarea>
-      <div className="flex gap-2">
-        <button className="px-4 py-2 bg-brand text-black rounded"
-          onClick={()=>{
-            const res = gradeShortAnswer(val, rubric);
-            setFeedback(res.feedback);
-            setOk(res.ok);
-            onResult(res.ok, res.feedback);
-          }}>Check Answer</button>
-        <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setVal(""); setFeedback(null); setOk(false); }}>Try Again</button>
-      </div>
-      {feedback && (
-        <div className={cx("p-3 rounded-lg border", ok ? "bg-green-500/10 border-green-500/30" : "bg-red-500/10 border-red-500/30")}>
-          <pre className="whitespace-pre-wrap">{feedback}</pre>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Story block */
-function StoryBlock({block, onTool}) {
-  useEffect(()=>{ try { window.hljs?.highlightAll(); } catch{} }, []);
-  if (block.type==='text') return <p className="text-white/85 leading-relaxed">{block.content}</p>;
-  if (block.type==='info') return <div className="p-4 rounded-xl bg-white/5 border border-white/10">{block.content}</div>;
-  if (block.type==='code') return (
-    <div className="code-block border border-white/10">
-      <pre><code className={block.lang}>{block.content}</code></pre>
-    </div>
-  );
-  if (block.type==='chips') return (
-    <div className="flex flex-wrap gap-2">
-      {block.items.map(it => <ToolChip key={it} name={it} onClick={()=>onTool(it)} />)}
-    </div>
-  );
+/* ========= Lesson Module (Full-screen) ========= */
+function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}catch{}},[]);
+  if(block.type==='text') return <p className="text-white/85">{block.content}</p>;
+  if(block.type==='info') return <div className="p-4 rounded bg-white/5 border border-white/10">{block.content}</div>;
+  if(block.type==='code') return <div className="code-block border border-white/10"><pre><code className={block.lang}>{block.content}</code></pre></div>;
+  if(block.type==='chips') return <div className="flex flex-wrap gap-2">{block.items.map(x=><ToolChip key={x} name={x} onClick={()=>onTool(x)}/>)}</div>;
   return null;
 }
-
-/** Lesson Module */
-function LessonModule({module, onClose, onProgress}) {
-  const [tool, setTool] = useState(null);
-  const [step, setStep] = useState(0);
-  const [toast, setToast] = useState(null);
-  const containerRef = useRef(null);
-
-  useEffect(()=>{ try { window.hljs?.highlightAll(); } catch{} }, [step]);
-
-  const giveXP = async (pts=10) => {
-    setToast(`+${pts} XP`);
-    setTimeout(()=>setToast(null), 1500);
-    await onProgress({ xpDelta: pts });
-  };
-
-  return (
-    <div ref={containerRef} className="fixed inset-0 z-40 flex">
-      <div className="relative flex-1 p-4 md:p-8 bg-brand-dark bg-grid dot">
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-white/5 to-transparent"></div>
-
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl md:text-3xl font-bold">{module.title}</h2>
-            <div className="flex gap-2">
-              <FullscreenButton targetRef={containerRef}/>
-              <button onClick={onClose} className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm">
-                <i className="fa-solid fa-xmark mr-2"></i>Exit
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-6 scroll-snap-y">
-            {step===0 && (
-              <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="snap-child">
-                <Badge tone="gray">Story Mode</Badge>
-                <div className="mt-3 grid gap-4">
-                  {module.story.map((b, idx)=> <StoryBlock key={idx} block={b} onTool={setTool}/>)}
-                </div>
-                <div className="mt-6 flex gap-2">
-                  <button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Begin Practice</button>
-                </div>
-              </motion.div>
-            )}
-
-            {step===1 && (
-              <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="snap-child">
-                <Badge tone="brand">Practice</Badge>
-                <div className="mt-3 space-y-6">
-                  {module.practice.map((p, i)=>(
-                    <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold">{p.title}</h4>
-                        <Badge tone="gray">{p.mode==='short' ? 'Short Answer' : p.mode==='mc' ? 'Multiple Choice' : 'Drag & Match'}</Badge>
-                      </div>
-                      {p.mode==='dragmatch' && <DragMatch pairs={p.pairs} onComplete={(ok,msg)=>{ alert(msg); if (ok) giveXP(10); }}/>}
-                      {p.mode==='mc' && <MCQuestion options={p.options} onResult={(ok,why,correct)=>{
-                        alert(ok ? `Correct! ${why}` : `Not quite.\n\nWhy:\n${why}\n\nCorrect answer:\n${correct}`);
-                        if (ok) giveXP(10);
-                      }}/>}
-                      {p.mode==='short' && <ShortAnswer rubric={p.rubric} onResult={(ok)=>{ if(ok) giveXP(12); }} />}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex gap-2">
-                  <button onClick={()=>setStep(0)} className="px-4 py-2 rounded bg-white/10">Back</button>
-                  <button onClick={()=>setStep(2)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Go to Quiz</button>
-                </div>
-              </motion.div>
-            )}
-
-            {step===2 && (
-              <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="snap-child">
-                <Badge tone="green">Final Quiz</Badge>
-                <div className="mt-3 space-y-6">
-                  {module.quiz.map((q, i)=>(
-                    <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                      <div className="font-semibold mb-3">{q.q}</div>
-                      <MCQuestion options={q.answers} onResult={(ok,why,correct)=>{
-                        alert(ok ? `Correct! ${why}` : `Not quite.\n\nWhy:\n${why}\n\nCorrect answer:\n${correct}\n\nTry again!`);
-                        if (ok) giveXP(15);
-                      }}/>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex gap-2">
-                  <button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-white/10">Back</button>
-                  <button onClick={onClose} className="px-4 py-2 rounded bg-green-500 text-black font-semibold">Finish Module</button>
-                </div>
-              </motion.div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {tool && <ToolModal tool={tool} onClose={()=>setTool(null)} />}
-      {/* lightweight toast substitute */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-        {toast && <div className="px-4 py-2 rounded-lg bg-black/70 text-white/90">{toast}</div>}
-      </div>
-    </div>
-  );
-}
-
-/** Course Map */
-function CourseMap({title, nodes=[], progress={}, onOpen}) {
-  return (
-    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl font-semibold">{title}</h3>
-        <Badge tone="gray">{Object.keys(progress).length} completed</Badge>
-      </div>
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {nodes.map(n=>{
-          const locked = n.prereq.some(p=>!progress[p]);
-          const done = progress[n.id];
-          return (
-            <button key={n.id}
-              disabled={locked}
-              onClick={()=>onOpen(n)}
-              className={cx(
-                "text-left p-4 rounded-xl border transition",
-                done ? "bg-green-500/10 border-green-500/30" : locked ? "bg-white/5 border-white/10 opacity-60 cursor-not-allowed" : "bg-white/5 border-white/10 hover:bg-white/10"
-              )}>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">{n.title}</span>
-                {done ? <i className="fa-solid fa-check text-green-400"></i> : locked ? <i className="fa-solid fa-lock"></i> : <i className="fa-solid fa-arrow-right"></i>}
-              </div>
-              <div className="mt-2 text-xs opacity-70">Prereq: {n.prereq.length ? n.prereq.join(', ') : 'None'}</div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** Auth Modal */
-function AuthModal({onClose, onAuthed}) {
-  const [tab, setTab] = useState('login');
-  const [email, setEmail] = useState('');
-  const [pass, setPass] = useState('');
-  const [err, setErr] = useState('');
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
-      <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-md border border-white/10">
+function LessonModule({module,onClose,onProgress}){
+  const [tool,setTool]=useState(null); const [step,setStep]=useState(0); const ref=useRef(null);
+  useEffect(()=>{try{hljs?.highlightAll()}catch{}},[step]);
+  const giveXP=async(p=10)=>{ await onProgress({xpDelta:p}); };
+  return <div ref={ref} className="fixed inset-0 z-40 flex">
+    <div className="relative flex-1 p-4 md:p-8 bg-brand-dark bg-grid dot">
+      <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold">{module.title}</h2>
           <div className="flex gap-2">
-            <button onClick={()=>setTab('login')} className={cx("px-3 py-1 rounded-lg", tab==='login' ? "bg-brand text-black" : "bg-white/10")}>Log In</button>
-            <button onClick={()=>setTab('signup')} className={cx("px-3 py-1 rounded-lg", tab==='signup' ? "bg-brand text-black" : "bg-white/10")}>Sign Up</button>
+            <FullscreenButton targetRef={ref}/>
+            <button onClick={onClose} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm"><i className="fa-solid fa-xmark mr-2"></i>Exit</button>
           </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white"><i className="fa-solid fa-xmark"></i></button>
         </div>
-        {err && <div className="mb-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-sm">{err}</div>}
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm block opacity-80 mb-1">Email</label>
-            <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"/>
+
+        {step===0 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
+          <Badge tone="gray">Story Mode</Badge>
+          <div className="mt-3 grid gap-4">{module.story.map((b,i)=><StoryBlock key={i} block={b} onTool={setTool}/>)}</div>
+          <div className="mt-6 flex gap-2"><button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Begin Practice</button></div>
+        </motion.div>}
+
+        {step===1 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
+          <Badge>Practice</Badge>
+          <div className="mt-3 space-y-6">
+            {module.practice.map((p,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between mb-2"><h4 className="font-semibold">{p.title}</h4>
+                <Badge tone="gray">{p.mode==='short'?'Short Answer':p.mode==='mc'?'Multiple Choice':'Drag & Match'}</Badge></div>
+              {p.mode==='dragmatch' && <DragMatch pairs={p.pairs} onComplete={(ok,msg)=>{ alert(msg); if(ok) giveXP(10); }}/>}
+              {p.mode==='mc' && <MCQuestion options={p.options} onResult={(ok,why,correct)=>{ alert(ok?`Correct! ${why}`:`Not quite.\n\nWhy:\n${why}\n\nCorrect:\n${correct}`); if(ok) giveXP(10);} }/>}
+              {p.mode==='short' && <ShortAnswer rubric={p.rubric} onResult={(ok)=>{ if(ok) giveXP(12); }}/>}
+            </div>)}
           </div>
-          <div>
-            <label className="text-sm block opacity-80 mb-1">Password</label>
-            <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"/>
-          </div>
-          <button className="w-full px-4 py-2 rounded bg-brand text-black font-semibold" onClick={async ()=>{
-            try {
-              const fn = tab==='login' ? signIn : signUp;
-              const user = await fn(email, pass);
-              appState.user = user;
-              const existing = await loadProgress(user.uid);
-              onAuthed(user, existing);
-              onClose();
-            } catch (e) { setErr(e.message); }
-          }}>{tab==='login' ? 'Log In' : 'Create Account'}</button>
-          {!CONFIG.USE_FIREBASE && (
-            <div className="text-xs opacity-70 text-center">Demo auth is active (local only). Add Firebase config in CONFIG to enable real auth.</div>
-          )}
-        </div>
-      </motion.div>
+          <div className="mt-6 flex gap-2"><button onClick={()=>setStep(0)} className="px-4 py-2 rounded bg-white/10">Back</button>
+            <button onClick={()=>setStep(2)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Go to Quiz</button></div>
+        </motion.div>}
+
+        {step===2 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
+          <Badge tone="green">Final Quiz</Badge>
+          <div className="mt-3 space-y-6">{module.quiz.map((q,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
+            <div className="font-semibold mb-3">{q.q}</div>
+            <MCQuestion options={q.answers} onResult={(ok,why,correct)=>{ alert(ok?`Correct! ${why}`:`Not quite.\n\nWhy:\n${why}\n\nCorrect:\n${correct}\n\nTry again!`);
+              if(ok) giveXP(15);} }/>
+          </div>)}</div>
+          <div className="mt-6 flex gap-2"><button onClick={()=>setStep(1)} className="px-4 py-2 rounded bg-white/10">Back</button>
+            <button onClick={onClose} className="px-4 py-2 rounded bg-green-500 text-black font-semibold">Finish Module</button></div>
+        </motion.div>}
+      </div>
     </div>
-  );
+    {tool && <ToolModal tool={tool} onClose={()=>setTool(null)}/>}
+  </div>;
 }
 
-/** Root App */
-function App() {
-  const [page, setPage] = useState('home');
-  const [showAuth, setShowAuth] = useState(false);
-  const [user, setUser] = useState(null);
-  const [progress, setProgress] = useState({ xp:0, fundamentals:{}, red:{}, blue:{} });
-
-  useEffect(()=>{ initFirebaseIfNeeded(); }, []);
-  useEffect(()=>{ try { window.hljs?.highlightAll(); } catch{} }, [page]);
-
-  useEffect(()=>{
-    if (user) saveProgress(user.uid, progress);
-  }, [progress?.xp, progress?.fundamentals, progress?.red, progress?.blue]);
-
-  const openModule = (m) => {
-    const onClose = async ()=>{
-      setPage('learn');
-      setProgress(p => ({ ...p, fundamentals: { ...p.fundamentals, [m.id]: true } }));
-    };
-    const onProgress = async ({ xpDelta=0 }) => setProgress(p => ({...p, xp: (p.xp||0) + xpDelta }));
-    const mount = document.createElement('div');
-    document.body.appendChild(mount);
-    const root = ReactDOM.createRoot(mount);
-    root.render(<LessonModule module={m} onClose={()=>{
-      root.unmount(); mount.remove(); onClose();
-    }} onProgress={onProgress} />);
-  };
-
-  const openNode = (n, type) => {
-    alert(`${n.title}\n\nThis opens a themed module in ${type.toUpperCase()} path.\n(Connect to detailed content the same way as FUNDAMENTALS.)`);
-    setProgress(p => ({ ...p, [type]: { ...p[type], [n.id]: true } }));
-  };
-
-  const xpPct = Math.min(100, Math.round(((Object.keys(progress.fundamentals).length + Object.keys(progress.red).length + Object.keys(progress.blue).length) / 20) * 100));
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-30">
-        <div className="glass border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 rounded-full animate-[pulse-ring_1.8s_ease-out_infinite]"></div>
-                <div className="h-10 w-10 rounded-full bg-brand"></div>
-              </div>
-              <div className="text-lg font-bold">CyberSec Academy</div>
-              <Badge>Immersive Story-Driven Learning</Badge>
-            </div>
-            <nav className="hidden md:flex items-center gap-2">
-              {['home','learn','redblue','labs','dashboard'].map(p => (
-                <button key={p} onClick={()=>setPage(p)}
-                  className={cx("px-3 py-2 rounded-lg text-sm", page===p ? "bg-white/15" : "hover:bg-white/10")}>
-                  {p==='redblue' ? 'Red & Blue' : p[0].toUpperCase()+p.slice(1)}
-                </button>
-              ))}
-            </nav>
-            <div className="flex items-center gap-2">
-              {user ? (
-                <>
-                  <Badge tone="green">{user.email}</Badge>
-                  <button className="px-3 py-2 bg-white/10 rounded" onClick={async()=>{ await signOut(); setUser(null); }}>Sign out</button>
-                </>
-              ) : (
-                <button className="px-3 py-2 bg-brand text-black rounded font-semibold" onClick={()=>setShowAuth(true)}>Log in / Sign up</button>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="h-1 bg-white/10"><div className="h-1 bg-brand" style={{width: `${xpPct}%`}}></div></div>
-      </header>
-
-      {/* Pages */}
-      <main className="flex-1">
-        {page==='home' && (
-          <section className="relative overflow-hidden">
-            <div className="absolute inset-0 dot opacity-50"></div>
-            <div className="max-w-7xl mx-auto px-4 py-16 relative">
-              <div className="grid md:grid-cols-2 gap-10 items-center">
-                <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
-                  <h1 className="text-4xl md:text-5xl font-black leading-tight">Master Cybersecurity with <span className="text-brand">Story-Driven Labs</span></h1>
-                  <p className="mt-4 text-white/80 text-lg">Learn by doing: immersive scenarios, interactive terminals, guided explanations, and auto-graded short answers.</p>
-                  <div className="mt-6 flex gap-3">
-                    <button onClick={()=>setPage('learn')} className="px-5 py-3 bg-brand text-black rounded-xl font-bold">Start Learning</button>
-                    <button onClick={()=>setPage('redblue')} className="px-5 py-3 bg-white/10 rounded-xl">Explore Red & Blue Paths</button>
-                  </div>
-                </motion.div>
-                <motion.div initial={{opacity:0,scale:.95}} animate={{opacity:1,scale:1}} transition={{delay:.1}}>
-                  <Terminal script={[
-                    {cmd:'whoami', out:'analyst'},
-                    {cmd:'nmap -sS 192.168.1.0/24', out:'22/tcp open ssh\n80/tcp open http\n443/tcp open https'}
-                  ]}/>
-                </motion.div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {page==='learn' && (
-          <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Fundamentals Path</h2>
-              <div className="text-sm opacity-70">{Object.keys(progress.fundamentals).length} / {FUNDAMENTALS.length} completed</div>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {FUNDAMENTALS.map(m => {
-                const done = !!progress.fundamentals[m.id];
-                return (
-                  <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border", done ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-white/10")}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-semibold">{m.title}</h3>
-                        <div className="mt-1 text-sm opacity-70">{done ? 'Completed' : 'Story → Practice → Quiz'}</div>
-                      </div>
-                      {done ? <i className="fa-solid fa-check text-green-400"></i> : <i className="fa-solid fa-book-open text-brand"></i>}
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      {!done && <button className="px-3 py-2 bg-brand text-black rounded-lg font-semibold" onClick={()=>openModule(m)}>Start</button>}
-                      {done && <button className="px-3 py-2 bg-white/10 rounded-lg" onClick={()=>openModule(m)}>Review</button>}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {page==='redblue' && (
-          <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-            <h2 className="text-2xl font-bold mb-2">Red & Blue Teams</h2>
-            <p className="opacity-80">Choose your path. Each node unlocks after you complete its prerequisites.</p>
-            <div className="grid lg:grid-cols-2 gap-6 mt-6">
-              <CourseMap title="Red Team Path" nodes={RED_COURSE} progress={progress.red} onOpen={(n)=>openNode(n,'red')} />
-              <CourseMap title="Blue Team Path" nodes={BLUE_COURSE} progress={progress.blue} onOpen={(n)=>openNode(n,'blue')} />
-            </div>
-          </section>
-        )}
-
-        {page==='labs' && (
-          <section className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-            <h2 className="text-2xl font-bold">Interactive Labs</h2>
-            <p className="opacity-80">Sandboxed command simulations with guided sequences.</p>
-            <Terminal script={[
-              {cmd:'whoami', out:'analyst'},
-              {cmd:'netstat -tuln', out:'tcp 0 0 0.0.0.0:22 LISTEN\ntcp 0 0 0.0.0.0:80 LISTEN'},
-              {cmd:'nmap -sV -O 127.0.0.1', out:'22/tcp open ssh OpenSSH 8.9\nOS details: Linux 5.x'}
-            ]}/>
-          </section>
-        )}
-
-        {page==='dashboard' && (
-          <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-            <h2 className="text-2xl font-bold">Your Dashboard</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="text-sm opacity-70">Total XP</div>
-                <div className="text-4xl font-black mt-2">{progress.xp||0}</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="text-sm opacity-70">Fundamentals Completed</div>
-                <div className="text-4xl font-black mt-2">{Object.keys(progress.fundamentals).length}/{FUNDAMENTALS.length}</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="text-sm opacity-70">Red/Blue Nodes</div>
-                <div className="text-4xl font-black mt-2">{Object.keys(progress.red).length + Object.keys(progress.blue).length}/10</div>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-              <h3 className="font-semibold mb-2">Next Recommendations</h3>
-              <ul className="list-disc list-inside opacity-90">
-                <li>Finish Fundamentals Module 1 (if not complete)</li>
-                <li>Open Red: Recon & OSINT</li>
-                <li>Blue: Log Fundamentals → short ELK-style lab</li>
-              </ul>
-            </div>
-          </section>
-        )}
-      </main>
-
-      <footer className="mt-12 border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-3 gap-6">
-          <div>
-            <div className="font-bold text-lg">CyberSec Academy</div>
-            <p className="text-white/70 mt-2">Hands-on cybersecurity learning that teaches before testing.</p>
-          </div>
-          <div>
-            <div className="font-semibold">Tools</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {Object.keys(TOOL_DB).map(k => <ToolChip key={k} name={k} onClick={()=>alert('Open any module to see full tool explainers with steps and links.')} />)}
-            </div>
-          </div>
-          <div>
-            <div className="font-semibold">Get Started</div>
-            <div className="mt-3 flex gap-2">
-              <button className="px-3 py-2 bg-brand text-black rounded" onClick={()=>document.querySelector('header nav button:nth-child(2)')?.click()}>Start Fundamentals</button>
-              <button className="px-3 py-2 bg-white/10 rounded" onClick={()=>document.querySelector('header nav button:nth-child(3)')?.click()}>Explore Red & Blue</button>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuthed={(u, existing)=>{ setUser(u); if (existing) setProgress(existing); }}/>}
+/* ========= Course Map ========= */
+function CourseMap({title,nodes=[],progress={},onOpen}){
+  return <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+    <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">{title}</h3>
+      <Badge tone="gray">{Object.keys(progress).length} completed</Badge></div>
+    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+      {nodes.map((n,idx)=>{const done=progress[n.id]; const locked=n.prereq?.some(p=>!progress[p]);
+        return <button key={n.id||idx} disabled={locked} onClick={()=>onOpen(n)}
+          className={cx("text-left p-4 rounded-xl border transition",
+            done?"bg-green-500/10 border-green-500/30":locked?"bg-white/5 border-white/10 opacity-60 cursor-not-allowed":"bg-white/5 border-white/10 hover:bg-white/10")}>
+          <div className="flex items-center justify-between"><span className="font-semibold">{n.title}</span>
+            {done?<i className="fa-solid fa-check text-green-400"></i>:locked?<i className="fa-solid fa-lock"></i>:<i className="fa-solid fa-arrow-right"></i>}</div>
+          <div className="mt-2 text-xs opacity-70">Prereq: {n.prereq?.length? n.prereq.join(', '):'None'}</div>
+        </button>; })}
     </div>
-  );
+  </div>;
+}
+
+/* ========= Community (Firestore or local) ========= */
+function Community({user}){
+  const [msgs,setMsgs]=useState([]); const [text,setText]=useState('');
+  const key='chat_general';
+  useEffect(()=>{ (async()=>{
+    if(CONFIG.USE_FIREBASE && appState.db){
+      return appState.db.collection('rooms').doc('general').collection('messages')
+        .orderBy('ts','asc').onSnapshot(snap=>{
+          setMsgs(snap.docs.map(d=>d.data()));
+        });
+    } else {
+      const m=JSON.parse(localStorage.getItem(key)||'[]'); setMsgs(m);
+    }
+  })(); },[]);
+  const send=async()=>{
+    if(!text.trim()) return;
+    const m={ user:user?.email||'Guest', text:text.trim(), ts: Date.now() };
+    if(CONFIG.USE_FIREBASE && appState.db){
+      await appState.db.collection('rooms').doc('general').collection('messages').add(m);
+    } else {
+      const arr=[...msgs,m]; setMsgs(arr); localStorage.setItem(key,JSON.stringify(arr));
+    }
+    setText('');
+  };
+  return <section className="max-w-4xl mx-auto px-4 py-10">
+    <h2 className="text-2xl font-bold mb-4">Community Chat</h2>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="h-72 overflow-y-auto space-y-2">
+        {msgs.map((m,i)=><div key={i} className="text-sm"><span className="text-brand">{m.user}:</span> {m.text}</div>)}
+      </div>
+      <div className="mt-3 flex gap-2">
+        <input className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" value={text}
+          onChange={e=>setText(e.target.value)} placeholder="Ask, share, help…"/>
+        <button onClick={send} className="px-4 py-2 bg-brand text-black rounded">Send</button>
+      </div>
+      {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 mt-2">Demo chat stored locally. Enable Firebase for realtime multi-user.</div>}
+    </div>
+  </section>;
+}
+
+/* ========= Live SOC Feed (sim) ========= */
+function LiveFeed({onTag}){
+  const [events,setEvents]=useState([]);
+  useEffect(()=>{ const base=[
+    {sev:'low', msg:'User login success', tag:'normal'},
+    {sev:'med', msg:'Multiple 401s from single IP', tag:'suspicious'},
+    {sev:'high', msg:'Outbound to rare country', tag:'suspicious'},
+    {sev:'med', msg:'Admin login outside hours', tag:'suspicious'},
+    {sev:'low', msg:'File downloaded', tag:'normal'},
+  ];
+  setEvents(base.map((e,i)=>({...e,id:i})));
+  },[]);
+  return <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <h3 className="font-semibold mb-3">Live SOC Feed (Simulated)</h3>
+    <ul className="space-y-2">
+      {events.map(e=><li key={e.id} className="p-3 rounded bg-black/30 flex items-center justify-between">
+        <div>
+          <Badge tone={e.sev==='high'?'red':e.sev==='med'?'brand':'gray'}>{e.sev.toUpperCase()}</Badge>
+          <span className="ml-2">{e.msg}</span>
+        </div>
+        <div className="space-x-2">
+          <button className="px-2 py-1 bg-white/10 rounded" onClick={()=>onTag?.(e,'normal')}>Normal</button>
+          <button className="px-2 py-1 bg-white/10 rounded" onClick={()=>onTag?.(e,'suspicious')}>Suspicious</button>
+        </div>
+      </li>)}
+    </ul>
+  </div>;
+}
+
+/* ========= Auth Modal ========= */
+function AuthModal({onClose,onAuthed}){
+  const [tab,setTab]=useState('login'); const [email,setEmail]=useState(''); const [pass,setPass]=useState(''); const [err,setErr]=useState('');
+  return <div className="fixed inset-0 z-50 grid place-items-center p-4">
+    <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
+    <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}}
+      className="glass rounded-2xl p-6 w-full max-w-md border border-white/10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-2">
+          <button onClick={()=>setTab('login')} className={cx("px-3 py-1 rounded", tab==='login'?"bg-brand text-black":"bg-white/10")}>Log In</button>
+          <button onClick={()=>setTab('signup')} className={cx("px-3 py-1 rounded", tab==='signup'?"bg-brand text-black":"bg-white/10")}>Sign Up</button>
+        </div>
+        <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
+      </div>
+      {err && <div className="mb-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-sm">{err}</div>}
+      <div className="space-y-3">
+        <div><label className="text-sm block opacity-80 mb-1">Email</label>
+          <input type="email" className="w-full bg-black/40 border border-white/10 rounded px-3 py-2" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+        <div><label className="text-sm block opacity-80 mb-1">Password</label>
+          <input type="password" className="w-full bg-black/40 border border-white/10 rounded px-3 py-2" value={pass} onChange={e=>setPass(e.target.value)}/></div>
+        <button className="w-full px-4 py-2 bg-brand text-black rounded font-semibold" onClick={async()=>{
+          try { const fn=tab==='login'? signIn: signUp; const u=await fn(email,pass); appState.user=u;
+            const existing=await loadProgress(u.uid); onAuthed(u,existing); onClose(); } catch(e){ setErr(e.message); }
+        }}>{tab==='login'?'Log In':'Create Account'}</button>
+        {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 text-center">Demo auth active. Enable Firebase for real auth.</div>}
+      </div>
+    </motion.div>
+  </div>;
+}
+
+/* ========= App ========= */
+function App(){
+  const [page,setPage]=useState('home');
+  const [showAuth,setShowAuth]=useState(false);
+  const [user,setUser]=useState(null);
+  const [progress,setProgress]=useState({ xp:0, streak:0, badges:[], foundations:{}, blue:{}, red:{}, devsecops:{}, asec:{} });
+  const [activeTrack,setActiveTrack]=useState('foundations');
+
+  useEffect(()=>{ initFirebaseIfNeeded(); },[]);
+  useEffect(()=>{ try{ hljs?.highlightAll() }catch{} },[page,activeTrack]);
+  useEffect(()=>{ if(user) saveProgress(user.uid,progress); },[progress?.xp,progress?.streak,progress?.badges,progress?.foundations,progress?.blue,progress?.red,progress?.devsecops,progress?.asec]);
+
+  const giveXP=(n)=> setProgress(p=>({...p, xp:(p.xp||0)+n }));
+  const grantBadge=(b)=> setProgress(p=> p.badges.includes(b)? p : ({...p, badges:[...p.badges,b]}));
+
+  const openModule=(m,trackKey)=>{
+    const mount=document.createElement('div'); document.body.appendChild(mount);
+    const onClose=()=>{ root.unmount(); mount.remove(); setPage('learn');
+      setProgress(p=>({...p, [trackKey]:{...p[trackKey],[m.id]:true}}));
+      giveXP(20); if ((Object.keys(progress[trackKey]).length+1)>=10) grantBadge(`${trackKey.toUpperCase()} Novice`);
+    };
+    const onProgress=async({xpDelta=0})=>giveXP(xpDelta);
+    const root=ReactDOM.createRoot(mount);
+    root.render(<LessonModule module={m} onClose={onClose} onProgress={onProgress} />);
+  };
+
+  const TRACK_LABELS={
+    foundations:'Foundations', blue:'Blue Team (Defense)', red:'Red Team (Ethical)', devsecops:'DevSecOps', asec:'AI Security'
+  };
+
+  const xpPct=Math.min(100, Math.round(((
+    Object.keys(progress.foundations).length + Object.keys(progress.blue).length +
+    Object.keys(progress.red).length + Object.keys(progress.devsecops).length +
+    Object.keys(progress.asec).length
+  ) / 150) * 100));
+
+  return <div className="min-h-screen flex flex-col">
+    {/* Header */}
+    <header className="sticky top-0 z-30">
+      <div className="glass border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative"><div className="absolute inset-0 rounded-full animate-[pulse-ring_1.8s_ease-out_infinite]"></div>
+              <div className="h-10 w-10 rounded-full bg-brand"></div></div>
+            <div className="text-lg font-bold">CyberSec Academy</div>
+            <Badge>Real-World, Story-Driven</Badge>
+          </div>
+          <nav className="hidden md:flex items-center gap-2">
+            {['home','learn','redblue','labs','live','community','dashboard'].map(p =>
+              <button key={p} onClick={()=>setPage(p)} className={cx("px-3 py-2 rounded text-sm", page===p?"bg-white/15":"hover:bg-white/10")}>
+                {p==='redblue'?'Course Maps':p[0].toUpperCase()+p.slice(1)}
+              </button>)}
+          </nav>
+          <div className="flex items-center gap-2">
+            {user? (<>
+              <Badge tone="green">{user.email}</Badge>
+              <button className="px-3 py-2 bg-white/10 rounded" onClick={async()=>{await signOut(); setUser(null);}}>Sign out</button>
+            </>) : (<button className="px-3 py-2 bg-brand text-black rounded font-semibold" onClick={()=>setShowAuth(true)}>Log in / Sign up</button>)}
+          </div>
+        </div>
+      </div>
+      <div className="h-1 bg-white/10"><div className="h-1 bg-brand" style={{width:`${xpPct}%`}}></div></div>
+    </header>
+
+    {/* Pages */}
+    <main className="flex-1">
+      {page==='home' && <section className="relative overflow-hidden">
+        <div className="absolute inset-0 dot opacity-50"></div>
+        <div className="max-w-7xl mx-auto px-4 py-16 relative">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
+              <h1 className="text-4xl md:text-5xl font-black leading-tight">Become job-ready with <span className="text-brand">real security</span> skills.</h1>
+              <p className="mt-4 text-white/80 text-lg">Story-mode lessons → hands-on labs → graded practice → community.</p>
+              <div className="mt-6 flex gap-3">
+                <button onClick={()=>setPage('learn')} className="px-5 py-3 bg-brand text-black rounded-xl font-bold">Start Learning</button>
+                <button onClick={()=>setPage('redblue')} className="px-5 py-3 bg-white/10 rounded-xl">Explore All Tracks</button>
+              </div>
+            </motion.div>
+            <motion.div initial={{opacity:0,scale:.95}} animate={{opacity:1,scale:1}} transition={{delay:.1}}>
+              <Terminal script={[
+                {cmd:'whoami', out:'analyst'},
+                {cmd:'nmap -sS 192.168.1.0/24', out:'22/tcp open ssh\n80/tcp open http\n443/tcp open https'}
+              ]}/>
+            </motion.div>
+          </div>
+        </div>
+      </section>}
+
+      {page==='learn' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-2">
+            {Object.keys(TRACK_LABELS).map(k=>
+              <button key={k} onClick={()=>setActiveTrack(k)}
+                className={cx("px-3 py-2 rounded border text-sm", activeTrack===k? "bg-brand text-black border-brand":"bg-white/5 border-white/10 hover:bg-white/10")}>
+                {TRACK_LABELS[k]}
+              </button>)}
+          </div>
+          <div className="text-sm opacity-70">
+            {Object.keys(TRACKS[activeTrack]).length? Object.keys(progress[activeTrack]).length:0} / 30 completed
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {TRACKS[activeTrack].map(m=>{
+            const done=!!progress[activeTrack][m.id];
+            return <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border",
+              done? "bg-green-500/10 border-green-500/30":"bg-white/5 border-white/10")}>
+              <div className="flex items-start justify-between gap-3">
+                <div><h3 className="font-semibold">{m.title}</h3>
+                  <div className="mt-1 text-sm opacity-70">{done?'Completed':'Story → Practice → Quiz'}</div></div>
+                {done?<i className="fa-solid fa-check text-green-400"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
+              </div>
+              <div className="mt-4 flex gap-2">
+                {!done && <button className="px-3 py-2 bg-brand text-black rounded-lg font-semibold" onClick={()=>openModule(m,activeTrack)}>Start</button>}
+                {done && <button className="px-3 py-2 bg-white/10 rounded-lg" onClick={()=>openModule(m,activeTrack)}>Review</button>}
+              </div>
+            </motion.div>;
+          })}
+        </div>
+      </section>}
+
+      {page==='redblue' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold mb-2">All Course Maps</h2>
+        <p className="opacity-80">Each track has 30 modules; unlock by completing prerequisites (where set).</p>
+        <div className="grid lg:grid-cols-2 gap-6 mt-6">
+          <CourseMap title="Foundations" nodes={TRACKS.foundations.map((m,i)=>({id:m.id,title:m.title,prereq:[]}))}
+            progress={progress.foundations} onOpen={(n)=>openModule(TRACKS.foundations.find(m=>m.id===n.id),'foundations')} />
+          <CourseMap title="Blue Team (Defense)" nodes={TRACKS.blue.map((m,i)=>({id:m.id,title:m.title,prereq:[]}))}
+            progress={progress.blue} onOpen={(n)=>openModule(TRACKS.blue.find(m=>m.id===n.id),'blue')} />
+          <CourseMap title="Red Team (Ethical)" nodes={TRACKS.red.map((m,i)=>({id:m.id,title:m.title,prereq:[]}))}
+            progress={progress.red} onOpen={(n)=>openModule(TRACKS.red.find(m=>m.id===n.id),'red')} />
+          <CourseMap title="DevSecOps" nodes={TRACKS.devsecops.map((m,i)=>({id:m.id,title:m.title,prereq:[]}))}
+            progress={progress.devsecops} onOpen={(n)=>openModule(TRACKS.devsecops.find(m=>m.id===n.id),'devsecops')} />
+          <CourseMap title="AI Security" nodes={TRACKS.asec.map((m,i)=>({id:m.id,title:m.title,prereq:[]}))}
+            progress={progress.asec} onOpen={(n)=>openModule(TRACKS.asec.find(m=>m.id===n.id),'asec')} />
+        </div>
+      </section>}
+
+      {page==='labs' && <section className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Interactive Labs</h2>
+        <p className="opacity-80">Sandboxed command simulations with guided sequences.</p>
+        <Terminal script={[
+          {cmd:'whoami', out:'analyst'},
+          {cmd:'netstat -tuln', out:'tcp 0 0 0.0.0.0:22 LISTEN\n0.0.0.0:80 LISTEN'},
+          {cmd:'nmap -sV -O 127.0.0.1', out:'22/tcp open ssh OpenSSH 8.9\nOS details: Linux 5.x'}
+        ]}/>
+      </section>}
+
+      {page==='live' && <section className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Live SOC Feed (Simulated)</h2>
+        <p className="opacity-80">Tag events to practice triage. This mirrors what L1/L2 analysts do daily.</p>
+        <LiveFeed onTag={(e,tag)=>alert(`${e.msg}\nTagged: ${tag}.`)} />
+      </section>}
+
+      {page==='community' && <Community user={user}/>}
+
+      {page==='dashboard' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Your Dashboard</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10"><div className="text-sm opacity-70">Total XP</div>
+            <div className="text-4xl font-black mt-2">{progress.xp||0}</div></div>
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10"><div className="text-sm opacity-70">Badges</div>
+            <div className="mt-2 flex flex-wrap gap-2">{(progress.badges||[]).map(b=><Badge key={b} tone="green">{b}</Badge>)}</div></div>
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10"><div className="text-sm opacity-70">Modules Done</div>
+            <div className="text-4xl font-black mt-2">
+              {Object.keys(progress.foundations).length + Object.keys(progress.blue).length +
+               Object.keys(progress.red).length + Object.keys(progress.devsecops).length +
+               Object.keys(progress.asec).length}/150</div></div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+          <h3 className="font-semibold mb-2">Next Recommendations</h3>
+          <ul className="list-disc list-inside opacity-90">
+            <li>Finish Foundations: “The Internet Under Attack” then “Recon & Network Basics”.</li>
+            <li>Blue Team: try “Zeek for Defenders”.</li>
+            <li>DevSecOps: “Git Security & Secrets” with scanner integration.</li>
+            <li>AI Security: “Threat Modeling ML Systems”.</li>
+          </ul>
+        </div>
+      </section>}
+    </main>
+
+    <footer className="mt-12 border-t border-white/10">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-3 gap-6">
+        <div><div className="font-bold text-lg">CyberSec Academy</div>
+          <p className="text-white/70 mt-2">Learn clearly. Practice safely. Think like a pro.</p></div>
+        <div><div className="font-semibold">Tools</div>
+          <div className="mt-3 flex flex-wrap gap-2">{Object.keys(TOOL_DB).map(k=>
+            <ToolChip key={k} name={k} onClick={()=>alert('Open a module to see full tool explainers with steps & links.')}/>)}</div>
+        </div>
+        <div><div className="font-semibold">Get Started</div>
+          <div className="mt-3 flex gap-2">
+            <button className="px-3 py-2 bg-brand text-black rounded" onClick={()=>setPage('learn')}>Start Learning</button>
+            <button className="px-3 py-2 bg-white/10 rounded" onClick={()=>setPage('redblue')}>Explore Tracks</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuthed={(u,existing)=>{ setUser(u); if(existing) setProgress(existing); }}/>}
+  </div>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
