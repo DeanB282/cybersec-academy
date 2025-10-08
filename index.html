@@ -226,20 +226,47 @@ function Terminal({script=[]}){
 }
 
 /* ===== Improved practice widgets ===== */
+/* UPDATED: MCQuestion now gives best-possible answer on wrong, and “sharpen it” tips on correct */
 function MCQuestion({moduleId,qIndex,question,options,onResult}){
-  const [selected,setSelected]=useState(null);
-  const [locked,setLocked]=useState(false);
-  const [modal,setModal]=useState({open:false,correct:false,title:'',detail:''});
+  const [selected,setSelected] = React.useState(null);
+  const [locked,setLocked] = React.useState(false);
+  const [modal,setModal] = React.useState({open:false,correct:false,title:'',detail:''});
 
-  const submit=()=>{
-    if(selected==null) return;
-    const choice=options[selected];
-    const ok=!!choice.correct;
-    const detail = (ok? `Why it’s right:\n${choice.explain || choice.why || 'This is the most defensible approach.'}`
-                        : `Why that’s not best:\n${choice.explain || choice.why || 'There are safer, more reliable options.'}\n\nBest answer: ${(options.find(o=>o.correct)||{}).t}`);
+  const submit = () => {
+    if (selected == null) return;
+
+    const choice = options[selected];
+    const correctOpt = options.find(o => o.correct) || {};
+    const isCorrect = !!choice.correct;
+
+    const bestLine = correctOpt.t ? `Best answer (plain): ${correctOpt.t}` : '';
+    const whyBest  = correctOpt.explain || correctOpt.why || 'This approach is the safest and most reliable in practice.';
+
+    let detail;
+    if (!isCorrect) {
+      const whyWrong = choice.explain || choice.why || 'There are safer, more reliable options for this scenario.';
+      detail =
+        `You chose: ${choice.t}\n\n` +
+        `Why that’s not ideal:\n${whyWrong}\n\n` +
+        `${bestLine}\n` +
+        `Why it’s best:\n${whyBest}\n\n` +
+        `Try again with that in mind. Focus on: evidence first, smallest safe change, and how you’ll verify.`;
+    } else {
+      const whyRight = choice.explain || choice.why || 'Your choice reflects the right principle for this situation.';
+      const pointers = [
+        'State the *evidence* you would check before and after.',
+        'Name the *specific tool/command* you would use (e.g., Wireshark/Zeek/SPL).',
+        'Add a quick *rollback/exit* criterion so the change stays reversible.'
+      ].join('\n- ');
+      detail =
+        `You chose: ${choice.t}\n\n` +
+        `Why it’s correct:\n${whyRight}\n\n` +
+        `Sharpen it:\n- ${pointers}`;
+    }
+
     setLocked(true);
-    setModal({open:true,correct:ok,title:question,detail});
-    onResult(ok, detail, selected);  // pass picked option index
+    setModal({ open:true, correct:isCorrect, title:question, detail });
+    onResult(isCorrect, detail, selected);
   };
 
   return (
@@ -266,32 +293,123 @@ function MCQuestion({moduleId,qIndex,question,options,onResult}){
           );
         })}
       </div>
+
       <div className="flex gap-2 pt-3">
-        {!locked && <button className="px-4 py-2 bg-brand text-black rounded font-semibold disabled:opacity-50" disabled={selected==null} onClick={submit}>Submit</button>}
-        {locked && <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setLocked(false); setSelected(null); }}>Try Again</button>}
+        {!locked && (
+          <button
+            className="px-4 py-2 bg-brand text-black rounded font-semibold disabled:opacity-50"
+            disabled={selected==null}
+            onClick={submit}
+          >
+            Submit
+          </button>
+        )}
+        {locked && (
+          <button
+            className="px-4 py-2 bg-white/10 rounded"
+            onClick={()=>{ setLocked(false); setSelected(null); }}
+          >
+            Try Again
+          </button>
+        )}
       </div>
-      <AnswerModal open={modal.open} correct={modal.correct} title={modal.title} detail={modal.detail} onClose={()=>setModal({...modal,open:false})}/>
+
+      <AnswerModal
+        open={modal.open}
+        correct={modal.correct}
+        title={modal.title}
+        detail={modal.detail}
+        onClose={()=>setModal({...modal,open:false})}
+      />
     </div>
   );
 }
 
+/* UPDATED: ShortAnswer gives strengths, gaps, and a best-possible answer for clarity */
 function ShortAnswer({prompt,rubric,onResult}){
-  const [v,setV]=useState(''); const [fb,setFb]=useState(null); const [ok,setOk]=useState(false);
-  const grade=(answer, rub)=>{ const a=(answer||'').toLowerCase(); let score=0; const notes=[];
-    for(const kw of rub.keywords){ const hit=kw.group.some(g=>a.includes(g.toLowerCase()));
-      if(hit){ score+=kw.weight; notes.push(`✓ Mentioned ${kw.group[0]}`);} else { notes.push(`• Include: ${kw.group.slice(0,2).join(' / ')}`);} }
-    score=Math.max(0,Math.min(1,score)); const pass=score>=(rub.minScore??.7);
-    return { ok:pass, feedback: pass? "Excellent — you hit the key points." : `Not quite yet.\n\nModel guidance:\n${rub.modelAnswer}\n\nTips:\n- ${notes.join('\n- ')}` };
+  const [v,setV] = React.useState('');
+  const [fb,setFb] = React.useState(null);
+  const [ok,setOk] = React.useState(false);
+
+  const grade = (answer, rub) => {
+    const a = (answer||'').toLowerCase();
+    let score = 0;
+    const matched = [];
+    const missing = [];
+
+    (rub.keywords||[]).forEach(kw=>{
+      const hit = kw.group.some(g=>a.includes(g.toLowerCase()));
+      if (hit){ score += kw.weight; matched.push(kw.group[0]); }
+      else { missing.push(kw.group[0]); }
+    });
+
+    score = Math.max(0, Math.min(1, score));
+    const pass = score >= (rub.minScore ?? .7);
+
+    if (!pass) {
+      const tips = missing.length
+        ? `You should also mention: ${missing.join(', ')}.`
+        : `Tighten the structure: name the risk → the single control → how you’ll verify.`;
+      const best =
+        `Best possible answer (plain):\n${rub.modelAnswer || 'Name the main risk and the single, most effective control. Say how you would verify it worked.'}`;
+
+      return {
+        ok:false,
+        feedback: `Not quite there.\n\n${tips}\n\n${best}\n\nHelpful pattern:\n- Risk: what could go wrong for users/business\n- Control: the one action that actually reduces that risk\n- Verify: the quick signal you’d watch to prove it worked`
+      };
+    }
+
+    const strengths = matched.length
+      ? `You covered: ${matched.join(', ')}.`
+      : `Good structure.`;
+    const tighten =
+      (missing.length
+        ? `To make it excellent, add: ${missing.join(', ')}.`
+        : `To make it stellar, add how you’d *verify* and a quick rollback/exit criterion.`) +
+      `\nModel answer to calibrate:\n${rub.modelAnswer || '—'}`;
+
+    return {
+      ok:true,
+      feedback: `Excellent — you hit the key points.\n\n${strengths}\n\n${tighten}`
+    };
   };
+
   return (
     <div>
       <div className="text-sm opacity-80 mb-2">{prompt}</div>
-      <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded p-3" value={v} onChange={e=>setV(e.target.value)} placeholder="Type your answer…"></textarea>
+      <textarea
+        rows={4}
+        className="w-full bg-black/40 border border-white/10 rounded p-3"
+        value={v}
+        onChange={e=>setV(e.target.value)}
+        placeholder="Type your answer…"
+      />
       <div className="flex gap-2 mt-2">
-        <button className="px-4 py-2 bg-brand text-black rounded font-semibold" onClick={()=>{ const res=grade(v,rubric); setFb(res.feedback); setOk(res.ok); onResult(res.ok,res.feedback); }}>Check</button>
-        <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setV(''); setFb(null); setOk(false); }}>Reset</button>
+        <button
+          className="px-4 py-2 bg-brand text-black rounded font-semibold"
+          onClick={()=>{
+            const res = grade(v, rubric||{keywords:[], modelAnswer:''});
+            setFb(res.feedback); setOk(res.ok); onResult(res.ok, res.feedback);
+          }}
+        >
+          Check
+        </button>
+        <button
+          className="px-4 py-2 bg-white/10 rounded"
+          onClick={()=>{ setV(''); setFb(null); setOk(false); }}
+        >
+          Reset
+        </button>
       </div>
-      {fb && <div className={cx("p-3 mt-2 rounded border", ok? "bg-green-600 border-green-400":"bg-red-600 border-red-400")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
+
+      {fb && (
+        <div className={cx(
+          "p-3 mt-2 rounded border whitespace-pre-wrap",
+          ok ? "bg-green-600 border-green-400" : "bg-red-600 border-red-400"
+        )}>
+          {fb}
+        </div>
+      )}
     </div>
   );
 }
@@ -815,7 +933,7 @@ const ROLE_PLANS = {
   "AppSec Engineer":    ['foundations','red','devsecops','sql'],
   "DevSecOps Engineer": ['foundations','devsecops','blue'],
   "AI Security Engineer": ['foundations','asec','blue'],
-  "Cyber Security Engineer": ['foundations','network','blue','devsecops','sql']   /* new role */
+  "Cyber Security Engineer": ['foundations','network','blue','devsecops','sql']
 };
 
 function RoleDashboard({role,progress,onJump}){
@@ -1070,7 +1188,7 @@ function App(){
     </footer>
 
     {/* Auth modal */}
-    {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuthed={(u,existing)=>{ setUser(u); if(existing) setProgress(existing); }}/>}
+    {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuthed={(u,existing)=>{ setUser(u); if(existing) setProgress(existing); }}/> }
   </div>;
 }
 
@@ -1079,4 +1197,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
 </html>
-
