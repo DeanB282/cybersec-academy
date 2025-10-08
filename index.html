@@ -12,8 +12,11 @@
       darkMode: 'class',
       theme: {
         extend: {
-          colors: { brand: { DEFAULT:'#00d4ff', dark:'#0c1e3e' } },
-          boxShadow: { glass:'0 8px 30px rgba(2,8,23,.35)' }
+          colors: { brand: { DEFAULT:'#00d4ff', dark:'#0c1e3e', accent:'#8a2be2' } },
+          boxShadow: { glass:'0 8px 30px rgba(2,8,23,.35)' },
+          backgroundImage: {
+            grid:"linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)"
+          }
         }
       }
     }
@@ -38,10 +41,9 @@
   <style>
     html, body, #root { height: 100%; }
     .glass { backdrop-filter: blur(12px); background: linear-gradient(180deg, rgba(12,30,62,.65), rgba(12,30,62,.35)); }
-    /* Blue/cyan hero (no purple) */
-    .heroBg { background: radial-gradient(1200px 600px at 0% 20%, #0b4abf 0%, rgba(11,74,191,.25) 45%, transparent 70%),
-                         radial-gradient(900px 500px at 85% 60%, rgba(0,212,255,.35) 0%, transparent 60%),
-                         linear-gradient(135deg, #061a3a 0%, #0b2b66 48%, #0c1e3e 100%); }
+    .dot { background: radial-gradient(circle at 30% 30%, rgba(0,212,255,.8), transparent 40%),
+                       radial-gradient(circle at 70% 70%, rgba(138,43,226,.6), transparent 45%); }
+    .bg-grid { background-size: 48px 48px, 48px 48px; }
     .code-block { border-radius: 12px; overflow: hidden; }
     @keyframes pulse-ring { 0% { transform: scale(.8); opacity:.6; } 80%,100% { transform: scale(1.8); opacity:0; } }
   </style>
@@ -78,14 +80,6 @@ const { useState, useEffect, useMemo, useRef } = React;
 const cx = (...c)=>c.filter(Boolean).join(' ');
 const wait = (ms)=>new Promise(r=>setTimeout(r, ms));
 
-/* ===== Mini Router (hash-based) + in-app history ===== */
-const ROUTES = ['home','learn','maps','roles','labs','challenges','cheats','dashboard'];
-function getRouteFromHash(){
-  const h=(location.hash||'').replace(/^#\/?/,'');
-  return ROUTES.includes(h)? h : 'home';
-}
-function navTo(page){ if(!ROUTES.includes(page)) page='home'; location.hash = page; }
-
 /* ===== Firebase / local demo auth ===== */
 const appState = { firebaseApp:null, auth:null, db:null, user:null };
 function initFirebaseIfNeeded(){ if(!CONFIG.USE_FIREBASE) return;
@@ -95,7 +89,7 @@ function initFirebaseIfNeeded(){ if(!CONFIG.USE_FIREBASE) return;
   }catch(e){ console.warn('Firebase init:', e?.message); }
 }
 async function sha256(txt){ if(!crypto?.subtle) return txt; const enc=new TextEncoder().encode(txt);
-  const h=await crypto.subtle.digest('SHA-256',enc); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2, '0')).join(''); }
+  const h=await crypto.subtle.digest('SHA-256',enc); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
 async function signUp(email, password){
   if(appState.auth){ const res=await appState.auth.createUserWithEmailAndPassword(email,password);
     return { uid:res.user.uid, email:res.user.email };
@@ -241,12 +235,11 @@ function MCQuestion({moduleId,qIndex,question,options,onResult}){
     if(selected==null) return;
     const choice=options[selected];
     const ok=!!choice.correct;
-    const best = (options.find(o=>o.correct)||{}).t;
     const detail = (ok? `Why it’s right:\n${choice.explain || choice.why || 'This is the most defensible approach.'}`
-                        : `Why that’s not best:\n${choice.explain || choice.why || 'There are safer, more reliable options.'}\n\nBest answer: ${best}`);
+                        : `Why that’s not best:\n${choice.explain || choice.why || 'There are safer, more reliable options.'}\n\nBest answer: ${(options.find(o=>o.correct)||{}).t}`);
     setLocked(true);
     setModal({open:true,correct:ok,title:question,detail});
-    onResult(ok, detail, selected);
+    onResult(ok, detail, selected);  // pass picked option index
   };
 
   return (
@@ -282,24 +275,21 @@ function MCQuestion({moduleId,qIndex,question,options,onResult}){
   );
 }
 
-/* Short Answer with “Best Possible Answer” + Scenario recap */
-function ShortAnswer({prompt,rubric,onResult,scenarioText}){
+function ShortAnswer({prompt,rubric,onResult}){
   const [v,setV]=useState(''); const [fb,setFb]=useState(null); const [ok,setOk]=useState(false);
   const grade=(answer, rub)=>{ const a=(answer||'').toLowerCase(); let score=0; const notes=[];
     for(const kw of rub.keywords){ const hit=kw.group.some(g=>a.includes(g.toLowerCase()));
       if(hit){ score+=kw.weight; notes.push(`✓ Mentioned ${kw.group[0]}`);} else { notes.push(`• Include: ${kw.group.slice(0,2).join(' / ')}`);} }
     score=Math.max(0,Math.min(1,score)); const pass=score>=(rub.minScore??.7);
-    const bestBlock = `\n\nBest possible answer:\n${rub.modelAnswer}`;
-    return { ok:pass, feedback: (pass? "Excellent — you hit the key points." : "Not quite yet.") + `\n\nScenario recap:\n${scenarioText || 'See scenario panel above.'}\n\nTips:\n- ${notes.join('\n- ')}${bestBlock}` };
+    return { ok:pass, feedback: pass? "Excellent — you hit the key points." : `Not quite yet.\n\nModel guidance:\n${rub.modelAnswer}\n\nTips:\n- ${notes.join('\n- ')}` };
   };
-  const areaRef=useRef(null);
   return (
     <div>
       <div className="text-sm opacity-80 mb-2">{prompt}</div>
-      <textarea ref={areaRef} rows={4} className="w-full bg-black/40 border border-white/10 rounded p-3" value={v} onChange={e=>setV(e.target.value)} placeholder="Type your answer…"></textarea>
+      <textarea rows={4} className="w-full bg-black/40 border border-white/10 rounded p-3" value={v} onChange={e=>setV(e.target.value)} placeholder="Type your answer…"></textarea>
       <div className="flex gap-2 mt-2">
         <button className="px-4 py-2 bg-brand text-black rounded font-semibold" onClick={()=>{ const res=grade(v,rubric); setFb(res.feedback); setOk(res.ok); onResult(res.ok,res.feedback); }}>Check</button>
-        <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setV(''); setFb(null); setOk(false); areaRef.current?.focus(); }}>Reset</button>
+        <button className="px-4 py-2 bg-white/10 rounded" onClick={()=>{ setV(''); setFb(null); setOk(false); }}>Reset</button>
       </div>
       {fb && <div className={cx("p-3 mt-2 rounded border", ok? "bg-green-600 border-green-400":"bg-red-600 border-red-400")}><pre className="whitespace-pre-wrap">{fb}</pre></div>}
     </div>
@@ -308,35 +298,69 @@ function ShortAnswer({prompt,rubric,onResult,scenarioText}){
 
 /* ===== Discussions & stats ===== */
 async function recordItemStat(moduleId, qIdx, pickedIdx, correct){
-  const key=`itemstats_${moduleId}`; const data=JSON.parse(localStorage.getItem(key)||'{}');
-  const q = data[qIdx] || { total:0, correct:0, options:{} };
-  q.total += 1; if (correct) q.correct += 1;
-  q.options[pickedIdx] = (q.options[pickedIdx]||0) + 1;
-  data[qIdx]=q; localStorage.setItem(key, JSON.stringify(data));
+  if(CONFIG.USE_FIREBASE && appState.db){
+    const ref = appState.db.collection('itemstats').doc(moduleId);
+    const snap = await ref.get(); const data = snap.exists ? snap.data() : {};
+    const q = data[qIdx] || { total:0, correct:0, options:{} };
+    q.total += 1; if (correct) q.correct += 1;
+    q.options[pickedIdx] = (q.options[pickedIdx]||0) + 1;
+    await ref.set({ [qIdx]: q }, { merge:true });
+  } else {
+    const key=`itemstats_${moduleId}`; const data=JSON.parse(localStorage.getItem(key)||'{}');
+    const q = data[qIdx] || { total:0, correct:0, options:{} };
+    q.total += 1; if (correct) q.correct += 1;
+    q.options[pickedIdx] = (q.options[pickedIdx]||0) + 1;
+    data[qIdx]=q; localStorage.setItem(key, JSON.stringify(data));
+  }
 }
 async function loadItemStats(moduleId){
-  const key=`itemstats_${moduleId}`; return JSON.parse(localStorage.getItem(key)||'{}');
+  if(CONFIG.USE_FIREBASE && appState.db){
+    const snap=await appState.db.collection('itemstats').doc(moduleId).get();
+    return snap.exists ? snap.data() : {};
+  } else {
+    const key=`itemstats_${moduleId}`; return JSON.parse(localStorage.getItem(key)||'{}');
+  }
+}
+async function loadThread(moduleId){
+  if(CONFIG.USE_FIREBASE && appState.db){
+    const ref = appState.db.collection('threads').doc(moduleId).collection('messages').orderBy('ts','asc');
+    return new Promise(resolve=>{ ref.onSnapshot(s=>resolve(s.docs.map(d=>d.data()))); });
+  } else {
+    const key=`thread_${moduleId}`; return JSON.parse(localStorage.getItem(key)||'[]');
+  }
 }
 async function postThread(moduleId, user, text){
   const msg = { user: user?.email||'Guest', text:text.trim(), ts: Date.now() };
-  const key=`thread_${moduleId}`; const cur=JSON.parse(localStorage.getItem(key)||'[]'); cur.push(msg);
-  localStorage.setItem(key, JSON.stringify(cur));
+  if(CONFIG.USE_FIREBASE && appState.db){
+    await appState.db.collection('threads').doc(moduleId).collection('messages').add(msg);
+  } else {
+    const key=`thread_${moduleId}`; const cur=JSON.parse(localStorage.getItem(key)||'[]'); cur.push(msg);
+    localStorage.setItem(key, JSON.stringify(cur));
+  }
 }
 function ModuleDiscussion({moduleId,user,onClose}){
   const [msgs,setMsgs]=useState([]); const [text,setText]=useState('');
-  useEffect(()=>{ const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]'));
-    const i=setInterval(()=>setMsgs(JSON.parse(localStorage.getItem(key)||'[]')), 600); return ()=>clearInterval(i);
-  },[moduleId]);
+  useEffect(()=>{ let unsub; (async()=>{
+    if(CONFIG.USE_FIREBASE && appState.db){
+      unsub = appState.db.collection('threads').doc(moduleId).collection('messages').orderBy('ts','asc').onSnapshot(s=>{
+        setMsgs(s.docs.map(d=>d.data()));
+      });
+    } else {
+      const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]'));
+    }
+  })(); return ()=>unsub&&unsub(); },[moduleId]);
   const send=async()=>{ if(!text.trim()) return; await postThread(moduleId, user, text);
-    const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]')); setText('');
+    if(!CONFIG.USE_FIREBASE){ const key=`thread_${moduleId}`; setMsgs(JSON.parse(localStorage.getItem(key)||'[]')); }
+    setText('');
   };
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
     <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
-    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-2xl border border-white/10" onMouseDown={e=>e.stopPropagation()}>
+    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-2xl border border-white/10">
       <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">Discussion — {moduleId}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <div className="h-72 overflow-y-auto space-y-2 mb-3">{msgs.map((m,i)=><div key={i} className="text-sm"><span className="text-brand">{m.user}:</span> {m.text}</div>)}</div>
       <div className="flex gap-2"><input value={text} onChange={e=>setText(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" placeholder="Ask or share…"/>
         <button className="px-4 py-2 bg-brand text-black rounded" onClick={send}>Send</button></div>
+      {!CONFIG.USE_FIREBASE && <div className="text-xs opacity-70 mt-2">Demo thread (local). Enable Firebase for realtime.</div>}
     </motion.div>
   </div>;
 }
@@ -345,7 +369,7 @@ function ItemAnalysis({moduleId,onClose}){
   useEffect(()=>{ (async()=> setStats(await loadItemStats(moduleId)))(); },[moduleId]);
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
     <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
-    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10" onMouseDown={e=>e.stopPropagation()}>
+    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
       <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">Quiz Item Analysis</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <div className="space-y-3">
         {Object.keys(stats).length===0 && <div className="opacity-70">No cohort data yet.</div>}
@@ -362,7 +386,7 @@ function ItemAnalysis({moduleId,onClose}){
   </div>;
 }
 
-/* ===== Story blocks ===== */
+/* ===== Story blocks (richer) ===== */
 function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}catch{}},[]);
   if(block.type==='text') return <p className="text-white/85 leading-relaxed">{block.content}</p>;
   if(block.type==='callout') return <div className={cx("p-4 rounded border", block.tone==='warn'?"bg-yellow-500/10 border-yellow-500/30":"bg-white/5 border-white/10")}>{block.content}</div>;
@@ -383,24 +407,6 @@ function StoryBlock({block,onTool}){ useEffect(()=>{try{hljs?.highlightAll()}cat
   return null;
 }
 
-/* ===== Scenario panel (pinned) ===== */
-function ScenarioBar({module}){
-  const scenes = (module.story||[]).filter(b=>b.type==='scene');
-  const summary = scenes.map(s=>`• ${s.title}: ${s.content}`).join('\n');
-  const [open,setOpen]=useState(true);
-  return (
-    <div className="sticky top-2 z-20">
-      <div className="bg-white/10 backdrop-blur rounded-xl border border-white/10">
-        <div className="px-4 py-2 flex items-center justify-between">
-          <div className="font-semibold"><i className="fa-solid fa-clipboard-list mr-2 text-brand"></i>Scenario</div>
-          <button onClick={()=>setOpen(v=>!v)} className="text-sm px-2 py-1 bg-white/10 rounded">{open?'Hide':'Show'}</button>
-        </div>
-        {open && <div className="px-4 pb-3"><pre className="whitespace-pre-wrap text-white/90 text-sm">{summary || 'No scenario details provided.'}</pre></div>}
-      </div>
-    </div>
-  );
-}
-
 /* ===== Lesson Module (fullscreen) ===== */
 function LessonModule({module,user,onClose,onProgress}){
   const [tool,setTool]=useState(null); const [step,setStep]=useState(0);
@@ -410,10 +416,8 @@ function LessonModule({module,user,onClose,onProgress}){
 
   const giveXP=async(p=10)=>{ await onProgress({xpDelta:p}); };
 
-  const scenarioText = (module.story||[]).filter(b=>b.type==='scene').map(s=>`${s.title}: ${s.content}`).join('\n');
-
   return <div ref={ref} className="fixed inset-0 z-40 flex">
-    <div className="relative flex-1 p-4 md:p-8 bg-brand-dark overflow-y-auto">
+    <div className="relative flex-1 p-4 md:p-8 bg-brand-dark bg-grid dot overflow-y-auto">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl md:text-3xl font-bold">{module.title}</h2>
@@ -426,9 +430,7 @@ function LessonModule({module,user,onClose,onProgress}){
           </div>
         </div>
 
-        <ScenarioBar module={module}/>
-
-        {step===0 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="mt-4">
+        {step===0 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
           <Badge tone="gray">Story Mode</Badge>
           <div className="mt-3 grid gap-4">{module.story.map((b,i)=><StoryBlock key={i} block={b} onTool={setTool}/>)}</div>
           <div className="mt-6 flex gap-2">
@@ -436,14 +438,14 @@ function LessonModule({module,user,onClose,onProgress}){
           </div>
         </motion.div>}
 
-        {step===1 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="mt-4">
+        {step===1 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
           <Badge>Practice</Badge>
           <div className="mt-3 space-y-6">
             {module.practice.map((p,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2"><h4 className="font-semibold">{p.title}</h4>
                 <Badge tone="gray">{p.mode==='short'?'Short Answer':p.mode==='mc'?'Multiple Choice':p.mode==='dragmatch'?'Drag & Match':'Task'}</Badge></div>
               {p.mode==='mc' && <MCQuestion moduleId={module.id} qIndex={100+i} question={p.title} options={p.options} onResult={(ok)=>{ if(ok) giveXP(10); }}/>}
-              {p.mode==='short' && <ShortAnswer prompt={p.prompt} rubric={p.rubric} scenarioText={scenarioText} onResult={(ok)=>{ if(ok) giveXP(12); }}/>}
+              {p.mode==='short' && <ShortAnswer prompt={p.prompt} rubric={p.rubric} onResult={(ok)=>{ if(ok) giveXP(12); }}/>}
               {p.mode==='task' && <div className="text-sm opacity-85">{p.instructions}</div>}
             </div>)}
           </div>
@@ -451,7 +453,7 @@ function LessonModule({module,user,onClose,onProgress}){
             <button onClick={()=>setStep(2)} className="px-4 py-2 rounded bg-brand text-black font-semibold">Go to Quiz</button></div>
         </motion.div>}
 
-        {step===2 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="mt-4">
+        {step===2 && <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
           <Badge tone="green">Final Quiz</Badge>
           <div className="mt-3 space-y-6">{module.quiz.map((q,i)=><div key={i} className="p-4 rounded bg-white/5 border border-white/10">
             <div className="font-semibold mb-3">{q.q}</div>
@@ -475,7 +477,7 @@ function LessonModule({module,user,onClose,onProgress}){
 function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool]||TOOL_DB['Wireshark'];
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
     <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
-    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10" onMouseDown={e=>e.stopPropagation()}>
+    <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-xl border border-white/10">
       <div className="flex items-center justify-between mb-4"><h3 className="text-xl font-semibold">{tool}</h3><button onClick={onClose}><i className="fa-solid fa-xmark"></i></button></div>
       <p className="text-white/80 mb-3">{t.what}</p>
       <ol className="list-decimal list-inside space-y-2 mb-4">{t.steps.map((s,i)=><li key={i}>{s}</li>)}</ol>
@@ -484,7 +486,7 @@ function ToolModal({tool,onClose}){ if(!tool) return null; const t=TOOL_DB[tool]
   </div>;
 }
 
-/* ===== Linux Cheat Sheet (no single-letter glitch) ===== */
+/* ===== Linux Cheat Sheet (search + copy) ===== */
 function LinuxCheatSheet({onClose}){
   const SECTIONS = [
     { title:'Navigation & Files', items:[
@@ -532,22 +534,19 @@ function LinuxCheatSheet({onClose}){
     ]}
   ];
   const [q,setQ]=useState('');
-  const inputRef=useRef(null);
-  useEffect(()=>{ inputRef.current?.focus(); },[]); // initial focus only (no re-focus per keystroke)
-
-  const list=SECTIONS.map(s=>({...s, items:s.items.filter(([cmd,desc])=>cmd.toLowerCase().includes(q.toLowerCase())||desc.toLowerCase().includes(q.toLowerCase()))})).filter(s=>s.items.length>0);
+  const list=SECTIONS.map(s=>({...s, items:s.items.filter(([cmd,desc])=>cmd.includes(q)||desc.toLowerCase().includes(q.toLowerCase()))})).filter(s=>s.items.length>0);
 
   const copy=(text)=>{ navigator.clipboard?.writeText(text); };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
-      <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-3xl border border-white/10" onMouseDown={e=>e.stopPropagation()}>
+      <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-3xl border border-white/10">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xl font-semibold"><i className="fa-solid fa-terminal mr-2"></i>Linux Commands Cheat Sheet</h3>
           <button onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
         </div>
-        <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2" placeholder="Search commands or descriptions…" />
+        <input value={q} onChange={e=>setQ(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2" placeholder="Search commands or descriptions…"/>
         <div className="grid md:grid-cols-2 gap-4 mt-4 max-h-[60vh] overflow-y-auto pr-1">
           {list.map((s,si)=><div key={si} className="p-3 rounded-lg bg-white/5 border border-white/10">
             <div className="font-semibold mb-2">{s.title}</div>
@@ -561,95 +560,66 @@ function LinuxCheatSheet({onClose}){
               </li>)}
             </ul>
           </div>)}
-          {list.length===0 && <div className="opacity-80 text-sm">No matches.</div>}
         </div>
       </motion.div>
     </div>
   );
 }
 
-/* ===== Course scaffolding (trimmed) ===== */
+/* ===== Course scaffolding ===== */
 const FOUNDATIONS_10=[
   "The Internet Under Attack","Recon & Network Basics","Web App Security 101","Authentication & Authorization",
   "Intro to Cryptography","Secure Coding (Top 10)","Linux Security Fundamentals","Windows Security Fundamentals",
   "Cloud Security Basics","Foundations Capstone"
 ];
+
+/* Deep authored Network (10) */
 const NETWORK_10=[
   "Packet Capture Triage (Wireshark + Zeek)","TCP/IP Deep Dive","Subnetting & Routing Basics","Switching & VLANs",
   "DNS In Depth","TLS Handshake & PKI","Firewalls & ACLs","IDS/IPS Concepts","BGP Basics & Security (Concepts)","Network Capstone"
 ];
+
+/* Deep authored SQL (10) */
 const SQL_10=[
   "SQL Security Fundamentals","Relational Modeling & Keys","SQL Basics SELECT/WHERE/JOIN","Transactions & Isolation Levels",
   "Privileges/Roles/Least Privilege","Parameterization & ORM Safety","Stored Procedures Safeguards",
   "Audit Logging & Triggers (Concepts)","Encryption at Rest & in Transit","SQL Capstone"
 ];
 
-/* A fully authored example (Network #1 + SQL #1) */
-const AUTHORED = {
-  network: {
-    "Packet Capture Triage (Wireshark + Zeek)": {
-      id:'net-1', title:'Packet Capture Triage (Wireshark + Zeek)',
-      story:[
-        {type:'scene', title:'Briefing', content:"It’s 16:55. A critical release deployed at 16:30. Support phones light up: intermittent timeouts. You get a 5-minute PCAP from the API gateway."},
-        {type:'chips', items:['Wireshark','Zeek']},
-        {type:'scene', title:'Hypotheses', content:"Is it network congestion, TLS handshake failures after a cert change, or app latency? We don’t guess — we validate.", hints:['Check packet loss/retrans','Protocol mix changes','HTTP 5xx spikes']},
-        {type:'timeline', items:[
-          {t:'00:00', d:'Wireshark → Statistics → Protocol Hierarchy (is traffic mix normal?)'},
-          {t:'00:02', d:'Conversations/Endpoints → top talkers, RST/FIN spikes'},
-          {t:'00:03', d:'zeek -r capture.pcap → conn.log, dns.log, http.log summary'},
-          {t:'00:04', d:'Draft a 3-bullet incident note for leadership'}
-        ]},
-        {type:'callout', tone:'warn', content:'Simulated only. Never test on systems you don’t own or have permission to assess.'}
-      ],
-      practice:[
-        {mode:'mc', title:'Fastest “what’s happening” panel in Wireshark?', options:[
-          {t:'Statistics → Protocol Hierarchy', correct:true, explain:'One glance shows protocol mix & volumes.'},
-          {t:'Edit → Preferences', correct:false, explain:'Not triage.'},
-          {t:'Help → About', correct:false, explain:'Informational only.'},
-        ]},
-        {mode:'short', title:'Risk thinking', prompt:'State the primary risk and the one control that best mitigates it for this scenario.', rubric:{
-          minScore:.6, keywords:[{group:['risk','impact'],weight:.3},{group:['mitigate','prevent','control'],weight:.4},{group:['monitor','logs','verify'],weight:.3}],
-          modelAnswer:"Primary risk: prolonged customer impact while chasing the wrong root cause. Control: structured triage — Wireshark proto/flows for loss & resets; Zeek conn/http for outliers; only then test a minimal, reversible config change behind a feature flag."
-        }}
-      ],
-      quiz:[
-        {q:'Which quick metric indicates scanning?', answers:[
-          {t:'Many destination ports from one source in short bursts', correct:true, explain:'That pattern is classic scanning.'},
-          {t:'TLS version variety', correct:false, explain:'Not definitive.'},
-          {t:'One long TCP session', correct:false, explain:'Likely normal transfer.'}
-        ]}
-      ]
-    }
-  },
-  sql: {
-    "SQL Security Fundamentals": {
-      id:'sql-1', title:'SQL Security Fundamentals',
-      story:[
-        {type:'scene', title:'Briefing', content:"The login page leaks stack traces under load. Error shows a SELECT built with string concatenation."},
-        {type:'diagram', content:`/login -> api -> db\n"SELECT * FROM users WHERE name = '"+user+"' AND pass='"+pw+"';"`},
-        {type:'scene', title:'Action', content:'Replace with prepared statements; minimize error leakage; add security logging.', code:`-- Parameterized example (PostgreSQL)\nPREPARE authPlan (text, text) AS\n  SELECT id FROM users WHERE name=$1 AND password_hash = crypt($2, password_hash);\nEXECUTE authPlan($1,$2);`}
-      ],
-      practice:[
-        {mode:'short', title:'Risk thinking', prompt:'State the primary risk and the one control that best mitigates it for this scenario.', rubric:{
-          minScore:.6, keywords:[{group:['injection','sql'],weight:.4},{group:['parameter','prepared','bind'],weight:.4},{group:['errors','leak','logging'],weight:.2}],
-          modelAnswer:"Primary risk: SQL injection enabling auth bypass/data exposure. Control: parameterized queries (prepared statements/ORM binds) everywhere; standardize error handling (no stack traces) and log auth failures server-side."
-        }}
-      ],
-      quiz:[
-        {q:'Parameterization works for…', answers:[
-          {t:'SELECT, INSERT, UPDATE, DELETE', correct:true, explain:'All DML can bind params safely.'},
-          {t:'Only SELECT', correct:false, explain:'Not limited to SELECT.'},
-          {t:'Only WHERE clauses', correct:false, explain:'Also values and sets.'}
-        ]}
-      ]
-    }
-  }
-};
-function defaultModule(id, title) {
+/* Blue / Red / DevSecOps / AI */
+const BLUE_10=[
+  "C2 Beacon Hunt with Zeek + SPL","Windows Eventing (Sysmon)","Network Telemetry (NetFlow/PCAP)","DNS Security",
+  "Detection Engineering 1","Alert Triage & Escalation","Cloud Logs (AWS/GCP/Azure)","Endpoint Telemetry (EDR)",
+  "Blue Lab Day","Blue Capstone"
+];
+const RED_10=[
+  "OSINT & Recon","Web Enumeration","Auth Bypass (Concepts)","Linux Privesc (Concepts)",
+  "Windows Privesc (Concepts)","Credential Access (Concepts)","C2 Channels (Concepts)","Reporting & Debriefing",
+  "Kill Chain Mapping","Red Capstone"
+];
+const DEVSECOPS_10=[
+  "Break & Fix CI/CD Pipeline","SAST Fundamentals","SCA & SBOM","Container Security Basics",
+  "Image Scanning (Trivy)","Secrets Mgmt (Vault/KMS)","Supply Chain Risks (Sigstore)","Runtime Security (Falco)",
+  "Secure Release Gates","DevSecOps Capstone"
+];
+const AISEC_10=[
+  "Prompt Injection Defenses in an LLM App","AI Security Landscape","Data Poisoning (Concepts)","Adversarial Examples (Concepts)",
+  "Secure MLOps Pipelines","Runtime Monitoring (AI)","LLM App Risks","Vector DB Risks","AI Incident Response","AI Capstone"
+];
+
+/* Default module builder */
+function defaultModule(id, title, tools=[], objective="Hands-on learning objective") {
   return {
     id, title,
     story:[
       {type:'scene', title:'Briefing', content:`Mission: ${title}. You’ll approach this the way a professional team would — stepwise, safe, reversible.`},
+      {type:'chips', items: tools.slice(0,3).length? tools.slice(0,3): ['Wireshark','Nmap']},
+      {type:'scene', title:'Evidence', content:'Gather the minimum information to orient before touching anything.', hints:['Logs first, changes second','Prefer read-only vantage points']},
+      {type:'timeline', items:[
+        {t:'00:00', d:'Read the signal and scope.'},
+        {t:'00:10', d:'Collect minimal evidence.'},
+        {t:'00:20', d:'Decide on the smallest safe action.'}
+      ]},
       {type:'callout', tone:'warn', content:'Simulated only. Never test on systems you don’t own or have permission to assess.'}
     ],
     practice:[
@@ -660,7 +630,7 @@ function defaultModule(id, title) {
       ]},
       {mode:'short', title:'Risk thinking', prompt:'State the primary risk and the one control that best mitigates it for this scenario.', rubric:{
         minScore:.6, keywords:[{group:['risk','impact'],weight:.3},{group:['mitigate','prevent','control'],weight:.4},{group:['monitor','logs','verify'],weight:.3}],
-        modelAnswer:"Primary risk: unintended service impact due to changes without triage. Control: evidence-driven change control — observe telemetry, test minimal reversible change, and monitor rollback criteria."
+        modelAnswer:"Name the risk, the specific control, and how you verify in telemetry."
       }},
     ],
     quiz:[
@@ -673,30 +643,150 @@ function defaultModule(id, title) {
   };
 }
 
+/* Authored modules (deeper story) */
+const AUTHORED = {
+  network: {
+    "Packet Capture Triage (Wireshark + Zeek)": {
+      id:'net-1', title:'Packet Capture Triage (Wireshark + Zeek)',
+      prereq: [],
+      story:[
+        {type:'scene', title:'Briefing', content:"It’s 16:55. A critical release deployed at 16:30. Support phones light up: intermittent timeouts. You get a 5-minute PCAP from the API gateway."},
+        {type:'chips', items:['Wireshark','Zeek']},
+        {type:'scene', title:'Hypotheses', content:"Is it network congestion, TLS handshake failures after a cert change, or app latency? We don’t guess — we validate.", hints:['Check packet loss/retrans','Look for sudden protocol mix changes','Correlate HTTP status codes']},
+        {type:'timeline', items:[
+          {t:'00:00', d:'Wireshark → Statistics → Protocol Hierarchy (is traffic mix normal?)'},
+          {t:'00:02', d:'Conversations/Endpoints → Top talkers, RST/FIN spikes'},
+          {t:'00:03', d:'zeek -r capture.pcap → conn.log, dns.log, http.log summary'},
+          {t:'00:04', d:'Draft a 3-bullet incident note for leadership'}
+        ]},
+        {type:'diagram', content:`[Client]──TLS──>[API GW]──HTTP/2──>[App]\n  \\__ DUP-ACK bursts? __/\n  \\__ Server 5xx spikes? __/`},
+        {type:'code', lang:'bash', content:`# Fast Zeek triage\nzeek -Cr outage.pcap\ncut -d$'\\t' -f id.orig_h,id.resp_h,proto,service conn.log | sort | uniq -c | sort -nr | head\nawk '{print $5}' http.log | sort | uniq -c | sort -nr | head`},
+        {type:'callout', tone:'warn', content:'Focus on signals that explain user pain: retransmits, resets, 5xx, and anomalies in talker pairs.'}
+      ],
+      practice:[
+        {mode:'mc', title:'Fastest “what’s happening” panel in Wireshark?', options:[
+          {t:'Statistics → Protocol Hierarchy', correct:true, explain:'One glance shows protocol mix & volumes.'},
+          {t:'Edit → Preferences', correct:false, explain:'Not triage.'},
+          {t:'Help → About', correct:false, explain:'Informational only.'},
+        ]},
+        {mode:'short', title:'Zeek triage plan', prompt:'Name two Zeek logs you’d check first and what you’re looking for in each.', rubric:{
+          minScore:.6, keywords:[{group:['conn.log'],weight:.4},{group:['dns.log','http.log'],weight:.3},{group:['summary','flows','top'],weight:.3}],
+          modelAnswer:"conn.log for flow summary/top talkers; dns.log/http.log for names/URIs to label traffic quickly."
+        }}
+      ],
+      quiz:[
+        {q:'Which quick metric indicates scanning?', answers:[
+          {t:'Many destination ports from one source in short bursts', correct:true, explain:'That pattern is classic scanning.'},
+          {t:'TLS version variety', correct:false, explain:'Not definitive.'},
+          {t:'One long TCP session', correct:false, explain:'Likely normal file transfer.'}
+        ]}
+      ]
+    },
+    "TCP/IP Deep Dive": {
+      id:'net-2', title:'TCP/IP Deep Dive', prereq:['net-1'],
+      story:[
+        {type:'scene', title:'Briefing', content:"Users report slow downloads above 50 MB. Small files are fine. Suspect congestion, window issues, or bufferbloat."},
+        {type:'diagram', content:`SYN → SYN/ACK → ACK\nCheck: RTT, MSS, Window Scale, SACK, DUP-ACK bursts, Retrans`},
+        {type:'scene', title:'Decision', content:'Use pcaps + server metrics to isolate if TCP is starving the app or vice versa.', hints:['Look for falling window size','Correlate app logs timestamps']}
+      ],
+      practice:[
+        {mode:'mc', title:'What suggests congestion?', options:[
+          {t:'Frequent DUP-ACKs and retransmissions', correct:true, explain:'Signals packet loss/congestion.'},
+          {t:'TLS 1.3 present', correct:false, explain:'Unrelated to congestion.'},
+          {t:'IPv6 addresses', correct:false, explain:'Version isn’t the cause.'},
+        ]},
+      ],
+      quiz:[
+        {q:'If you see window size drop sharply, what is likely?', answers:[
+          {t:'Receiver limiting throughput due to buffering', correct:true, explain:'Window advertises receiver capacity.'},
+          {t:'DNS poisoning', correct:false, explain:'Different layer & signal.'},
+          {t:'Certificate pinning failure', correct:false, explain:'TLS issue, not TCP windowing.'}
+        ]}
+      ]
+    }
+  },
+  sql: {
+    "SQL Security Fundamentals": {
+      id:'sql-1', title:'SQL Security Fundamentals', prereq:[],
+      story:[
+        {type:'scene', title:'Briefing', content:"The login page leaks stack traces under load. Error shows a SELECT built with string concatenation.", hints:['Sanitize output to users','Fix the query pattern, not just escaping']},
+        {type:'diagram', content:`/login -> api -> db\n"SELECT * FROM users WHERE name = '"+user+"' AND pass='"+pw+"';"`},
+        {type:'scene', title:'Action', content:'Replace with prepared statements; minimize error leakage; log server-side.', code:`-- Parameterized example (PostgreSQL)\nPREPARE authPlan (text, text) AS\n  SELECT id FROM users WHERE name=$1 AND password_hash = crypt($2, password_hash);\nEXECUTE authPlan($1,$2);`}
+      ],
+      practice:[
+        {mode:'mc', title:'Strongest immediate defense?', options:[
+          {t:'Parameterization (prepared statements/ORM binds)', correct:true, explain:'Stops untrusted input changing query structure.'},
+          {t:'Only escape quotes', correct:false, explain:'Brittle and incomplete.'},
+          {t:'Hide errors only', correct:false, explain:'Doesn’t fix injection risk.'},
+        ]},
+      ],
+      quiz:[
+        {q:'Parameterization works for…', answers:[
+          {t:'SELECT, INSERT, UPDATE, DELETE', correct:true, explain:'All DML can bind params safely.'},
+          {t:'Only SELECT', correct:false, explain:'Not limited to SELECT.'},
+          {t:'Only WHERE clauses', correct:false, explain:'Also values and sets.'}
+        ]}
+      ]
+    }
+  },
+  blue: {
+    "C2 Beacon Hunt with Zeek + SPL": {
+      id:'blu-1', title:'C2 Beacon Hunt with Zeek + SPL', prereq:[],
+      story:[
+        {type:'scene', title:'Briefing', content:"Your SIEM shows periodic small egress to an odd ASN every 60s. Suspected beacon."},
+        {type:'chips', items:['Zeek','Splunk']},
+        {type:'scene', title:'Approach', content:'Measure inter-arrival time entropy, group flows by dst, confirm cadence, contain gracefully.'}
+      ],
+      practice:[
+        {mode:'mc', title:'Best indicator of beaconing?', options:[
+          {t:'Low-entropy inter-arrival times', correct:true, explain:'Consistent cadence screams beacon.'},
+          {t:'High TLS version', correct:false, explain:'Not indicative.'},
+          {t:'One long transfer', correct:false, explain:'Probably normal.'},
+        ]},
+      ],
+      quiz:[
+        {q:'After confirming beacon, your next step is…', answers:[
+          {t:'Collect intel & contain safely (block egress domain/IP)', correct:true, explain:'Containment after confirmation with change control.'},
+          {t:'Wipe endpoints immediately', correct:false, explain:'Too destructive; coordinate IR.'},
+          {t:'Announce publicly', correct:false, explain:'Not before IR plan.'}
+        ]}
+      ]
+    }
+  },
+  devsecops: {},
+  asec: {}
+};
+
+/* Build tracks (10 each) */
 function buildTrack(name, titles){
   const out=[]; for (let i=0;i<titles.length;i++){
     const t=titles[i]; const authored = AUTHORED[name]?.[t];
     const id = authored?.id || `${name}-${i+1}`;
-    out.push(authored ? authored : defaultModule(id, t));
+    out.push(authored ? authored : defaultModule(id, t, Object.keys(TOOL_DB), `Objective: ${t}`));
   }
   return out;
 }
 const TRACKS = {
   foundations: buildTrack('foundations', FOUNDATIONS_10),
+  blue:        buildTrack('blue', BLUE_10),
+  red:         buildTrack('red', RED_10),
+  devsecops:   buildTrack('devsecops', DEVSECOPS_10),
+  asec:        buildTrack('asec', AISEC_10),
   network:     buildTrack('network', NETWORK_10),
   sql:         buildTrack('sql', SQL_10),
 };
 
-/* ===== Unlock logic (5-at-a-time) ===== */
+/* ===== Unlock logic: lock modules after 5 until first five are completed ===== */
 function getCompletedCount(progressTrack){ return Object.keys(progressTrack||{}).length; }
 function isPhaseLocked(indexInTrack, progressTrack){
+  // Modules 0..4 = always accessible, 5..9 = require >=5 completed
   const completed = getCompletedCount(progressTrack);
   if(indexInTrack >= 5 && completed < 5) return true;
   return false;
 }
 function hasPrereqsDone(module, progressTrack){ const req=module.prereq||[]; return req.every(r=>progressTrack[r]); }
 
-/* ===== Course map ===== */
+/* ===== Course map, roles, badges, weekly ===== */
 function CourseMap({title,trackKey,nodes=[],progress={},onOpen}){
   return <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
     <div className="flex items-center justify-between mb-3"><h3 className="text-xl font-semibold">{title}</h3>
@@ -720,12 +810,56 @@ function CourseMap({title,trackKey,nodes=[],progress={},onOpen}){
   </div>;
 }
 
+const ROLE_PLANS = {
+  "SOC Analyst":        ['foundations','blue','network'],
+  "AppSec Engineer":    ['foundations','red','devsecops','sql'],
+  "DevSecOps Engineer": ['foundations','devsecops','blue'],
+  "AI Security Engineer": ['foundations','asec','blue'],
+  "Cyber Security Engineer": ['foundations','network','blue','devsecops','sql']   /* new role */
+};
+
+function RoleDashboard({role,progress,onJump}){
+  const tracks = ROLE_PLANS[role]||[];
+  const total = tracks.reduce((a,t)=>a+TRACKS[t].length,0);
+  const done  = tracks.reduce((a,t)=>a+Object.keys(progress[t]||{}).length,0);
+  const pct = Math.round((done/total)*100);
+  return <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+    <div className="flex items-center justify-between">
+      <div className="text-lg font-semibold">{role}</div>
+      <Badge tone="gray">{pct}% complete</Badge>
+    </div>
+    <div className="mt-3 h-2 bg-white/10 rounded overflow-hidden"><div className="h-2 bg-brand" style={{width:`${pct}%`}}></div></div>
+    <div className="mt-3 flex flex-wrap gap-2">
+      {tracks.map(t=><button key={t} className="px-3 py-2 bg-white/10 rounded" onClick={()=>onJump(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}
+    </div>
+  </div>;
+}
+
+/* Badges */
+function computeBadges(progress){ const badges=new Set(progress.badges||[]);
+  const perTrack = Object.keys(TRACKS);
+  for(const t of perTrack){
+    const count = Object.keys(progress[t]||{}).length;
+    if(count>=3) badges.add(`${t}:Rookie`);
+    if(count>=7) badges.add(`${t}:Practitioner`);
+    if(count>=10) badges.add(`${t}:Capstone`);
+  }
+  return Array.from(badges);
+}
+
+/* Weekly challenges (stub) */
+const WEEKLY = [
+  { id:'wch-1', title:'Blue + Network: Beacon Cadence Hunt', pulls:['blue','network'] },
+  { id:'wch-2', title:'DevSecOps + SQL: Secrets & Param Fixathon', pulls:['devsecops','sql'] },
+  { id:'wch-3', title:'Foundations Mix: Safe Triage Sprint', pulls:['foundations','network','sql'] }
+];
+
 /* ===== Auth modal ===== */
 function AuthModal({onClose,onAuthed}){
   const [tab,setTab]=useState('login'); const [email,setEmail]=useState(''); const [pass,setPass]=useState(''); const [err,setErr]=useState('');
   return <div className="fixed inset-0 z-50 grid place-items-center p-4">
     <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
-    <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-md border border-white/10" onMouseDown={e=>e.stopPropagation()}>
+    <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} className="glass rounded-2xl p-6 w-full max-w-md border border-white/10">
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
           <button onClick={()=>setTab('login')} className={cx("px-3 py-1 rounded", tab==='login'?"bg-brand text-black":"bg-white/10")}>Log In</button>
@@ -751,18 +885,16 @@ function AuthModal({onClose,onAuthed}){
 
 /* ===== App ===== */
 function App(){
-  const [page,setPageState]=useState(getRouteFromHash());
-  const [stack,setStack]=useState(['home']); // in-app stack
-  const setPage=(p, push=true)=>{ setPageState(p); if(push) setStack(s => [...s, p]); navTo(p); };
-  useEffect(()=>{ const onHash=()=>setPageState(getRouteFromHash()); window.addEventListener('hashchange', onHash); return ()=>window.removeEventListener('hashchange', onHash); },[]);
-
+  const [page,setPage]=useState('home');
   const [showAuth,setShowAuth]=useState(false);
   const [user,setUser]=useState(null);
-  const [progress,setProgress]=useState({ xp:0, badges:[], foundations:{}, network:{}, sql:{} });
+  const [progress,setProgress]=useState({ xp:0, badges:[], foundations:{}, blue:{}, red:{}, devsecops:{}, asec:{}, network:{}, sql:{} });
   const [activeTrack,setActiveTrack]=useState('foundations');
 
   useEffect(()=>{ initFirebaseIfNeeded(); },[]);
   useEffect(()=>{ try{ hljs?.highlightAll() }catch{} },[page,activeTrack]);
+  useEffect(()=>{ if(user){ const b=computeBadges(progress); setProgress(p=>({...p,badges:b})); saveProgress(user.uid, {...progress, badges:b}); }},[progress.foundations,progress.blue,progress.red,progress.devsecops,progress.asec,progress.network,progress.sql]);
+  useEffect(()=>{ if(user) saveProgress(user.uid,progress); },[user]);
 
   const giveXP=(n)=> setProgress(p=>({...p, xp:(p.xp||0)+n }));
   const openModule=(m,trackKey)=>{
@@ -773,31 +905,21 @@ function App(){
     root.render(<LessonModule module={m} user={user} onClose={onClose} onProgress={onProgress} />);
   };
 
-  const TRACK_LABELS={ foundations:'Foundations', network:'Network', sql:'Databases (SQL)' };
+  const TRACK_LABELS={ foundations:'Foundations', blue:'Blue Team', red:'Red Team', devsecops:'DevSecOps', asec:'AI Security', network:'Network', sql:'Databases (SQL)' };
 
-  const modulesDone = ['foundations','network','sql'].reduce((a,k)=>a+Object.keys(progress[k]).length,0);
+  const modulesDone = ['foundations','blue','red','devsecops','asec','network','sql'].reduce((a,k)=>a+Object.keys(progress[k]).length,0);
   const totalModules = Object.values(TRACKS).reduce((a,v)=>a+v.length,0);
   const xpPct=Math.min(100, Math.round((modulesDone / totalModules) * 100));
-
-  const goBackInApp = ()=>{ setStack(s=>{
-    if(s.length<=1) return s;
-    const next=[...s]; next.pop(); const prev=next[next.length-1]||'home';
-    setPageState(prev); navTo(prev);
-    return next;
-  }); };
 
   return <div className="min-h-screen flex flex-col">
     <header className="sticky top-0 z-30">
       <div className="glass border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Brand Logo (Shield) */}
-            <svg aria-hidden="true" className="h-8 w-8 text-brand" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2l7 3v6c0 5-3.5 9.5-7 11-3.5-1.5-7-6-7-11V5l7-3zM9.5 11a2.5 2.5 0 115 0v1h1v4h-7v-4h1v-1zm2.5-1a1 1 0 100 2 1 1 0 000-2z"/>
-            </svg>
+            <div className="relative"><div className="absolute inset-0 rounded-full animate-[pulse-ring_1.8s_ease-out_infinite]"></div>
+              <div className="h-10 w-10 rounded-full bg-brand"></div></div>
             <div className="text-lg font-bold">CyberSec Academy</div>
             <Badge>Story → Practice → Quiz</Badge>
-            {stack.length>1 && <button onClick={goBackInApp} className="ml-2 px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20"><i className="fa-solid fa-arrow-left mr-1"></i>Back</button>}
           </div>
           <nav className="hidden md:flex items-center gap-2">
             {['home','learn','maps','roles','labs','challenges','cheats','dashboard'].map(p =>
@@ -816,7 +938,7 @@ function App(){
 
     <main className="flex-1">
       {page==='home' && <section className="relative overflow-hidden">
-        <div className="absolute inset-0 heroBg"></div>
+        <div className="absolute inset-0 dot opacity-50"></div>
         <div className="max-w-7xl mx-auto px-4 py-16 relative">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}>
@@ -838,19 +960,20 @@ function App(){
       {page==='learn' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-2">{Object.keys(TRACK_LABELS).map(k=>
-            <button key={k} onClick={()=>{ setActiveTrack(k); setPage('learn'); }} className={cx("px-3 py-2 rounded border text-sm", activeTrack===k? "bg-brand text-black border-brand":"bg-white/5 border-white/10 hover:bg-white/10")}>{TRACK_LABELS[k]}</button>)}
+            <button key={k} onClick={()=>setActiveTrack(k)} className={cx("px-3 py-2 rounded border text-sm", activeTrack===k? "bg-brand text-black border-brand":"bg-white/5 border-white/10 hover:bg-white/10")}>{TRACK_LABELS[k]}</button>)}
           </div>
           <div className="text-sm opacity-70">{Object.keys(progress[activeTrack]).length} / {TRACKS[activeTrack].length} completed</div>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">{TRACKS[activeTrack].map((m,idx)=>{
           const done=!!progress[activeTrack][m.id];
+          const lockedByPrereq = m.prereq && m.prereq.length>0 && !hasPrereqsDone(m,progress[activeTrack]);
           const lockedByPhase = isPhaseLocked(idx, progress[activeTrack]);
-          const locked = lockedByPhase;
+          const locked = lockedByPrereq || lockedByPhase;
           return <motion.div key={m.id} whileHover={{y:-2}} className={cx("p-4 rounded-2xl border", locked? "bg-white/5 border-white/10 opacity-50": done? "bg-green-600 border-green-400":"bg-white/5 border-white/10")}>
             <div className="flex items-start justify-between gap-3">
               <div><h3 className="font-semibold">{m.title}</h3>
                 <div className="mt-1 text-sm opacity-70">
-                  {lockedByPhase ? 'Locked: complete first 5 modules' : (done?'Completed':'Story → Practice → Quiz')}
+                  {lockedByPhase ? 'Locked: complete first 5 modules' : lockedByPrereq ? 'Locked (prereqs required)' : (done?'Completed':'Story → Practice → Quiz')}
                 </div></div>
               {locked?<i className="fa-solid fa-lock text-white/60"></i>: done?<i className="fa-solid fa-check text-green-200"></i>:<i className="fa-solid fa-book-open text-brand"></i>}
             </div>
@@ -864,13 +987,21 @@ function App(){
       </section>}
 
       {page==='maps' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-        <h2 className="text-2xl font-bold">Course Maps (with phased unlocks)</h2>
+        <h2 className="text-2xl font-bold">Course Maps (with prerequisites & phased unlocks)</h2>
         <div className="grid lg:grid-cols-2 gap-6 mt-6">
-          {Object.entries({Foundations:'foundations','Network':'network','Databases (SQL)':'sql'}).map(([label,key])=>
+          {Object.entries({Foundations:'foundations','Blue Team':'blue','Red Team':'red','DevSecOps':'devsecops','AI Security':'asec','Network':'network','Databases (SQL)':'sql'}).map(([label,key])=>
             <CourseMap key={key} title={label} trackKey={key}
               nodes={TRACKS[key].map((m,idx)=>({id:m.id,title:m.title,prereq:m.prereq,index:idx}))}
               progress={progress[key]}
               onOpen={(n)=>openModule(TRACKS[key].find(m=>m.id===n.id),key)}/>)}
+        </div>
+      </section>}
+
+      {page==='roles' && <section className="max-w-6xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Role-based Dashboards</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {Object.keys(ROLE_PLANS).map(r=>
+            <RoleDashboard key={r} role={r} progress={progress} onJump={(t)=>{ setActiveTrack(t); setPage('learn'); }}/>)}
         </div>
       </section>}
 
@@ -881,7 +1012,18 @@ function App(){
           {cmd:'netstat -tuln', out:'tcp 0 0 0.0.0.0:22 LISTEN\n0.0.0.0:80 LISTEN'},
           {cmd:'nmap -sV -O 127.0.0.1', out:'22/tcp open ssh OpenSSH 8.9\nOS details: Linux 5.x'}
         ]}/>
-        <div className="text-sm opacity-70">Using safe, local simulations.</div>
+        {!CONFIG.USE_LABS && <div className="text-sm opacity-70">Using safe, local simulations. Later you can enable real ephemeral labs via <code>USE_LABS</code>.</div>}
+      </section>}
+
+      {page==='challenges' && <section className="max-w-7xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-bold">Weekly Multi-Track Challenges</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {WEEKLY.map(c=><div key={c.id} className="p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div className="font-semibold">{c.title}</div>
+            <div className="text-sm opacity-70 mt-1">Tracks: {c.pulls.map(t=>t[0].toUpperCase()+t.slice(1)).join(' • ')}</div>
+            <button className="mt-3 px-3 py-2 bg-brand text-black rounded" onClick={()=>alert('Challenge started — pulls lessons from listed tracks. (Stub)')}>Start</button>
+          </div>)}
+        </div>
       </section>}
 
       {page==='cheats' && <section className="max-w-6xl mx-auto px-4 py-10 space-y-6">
@@ -896,7 +1038,7 @@ function App(){
               root.render(<LinuxCheatSheet onClose={close}/>);
             }}>Open</button>
           </div>
-          <p className="text-white/80 mt-2 text-sm">Searchable, copy-to-clipboard quick references.</p>
+          <p className="text-white/80 mt-2 text-sm">Searchable, copy-to-clipboard quick references for navigation, permissions, processes, networking, and archives.</p>
         </div>
       </section>}
 
@@ -908,6 +1050,10 @@ function App(){
             <div className="text-sm opacity-70">{TRACK_LABELS[k]}</div>
             <div className="text-3xl font-black mt-2">{Object.keys(progress[k]).length}/{TRACKS[k].length}</div>
           </div>)}
+          <div className="md:col-span-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div className="text-sm opacity-70 mb-2">Badges Earned</div>
+            <div className="flex flex-wrap gap-2">{(progress.badges||[]).length? progress.badges.map(b=><Badge key={b} tone="green">{b}</Badge>) : <span className="opacity-60 text-sm">No badges yet — complete modules to earn them.</span>}</div>
+          </div>
         </div>
       </section>}
     </main>
@@ -915,10 +1061,10 @@ function App(){
     <footer className="mt-12 border-top border-white/10">
       <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-3 gap-6">
         <div><div className="font-bold text-lg">CyberSec Academy</div><p className="text-white/70 mt-2">Learn clearly. Practice safely. Apply for real.</p></div>
-        <div><div className="font-semibold">Tools</div><div className="mt-3 flex flex-wrap gap-2">{Object.keys(TOOL_DB).map(k=><ToolChip key={k} name={k} onClick={()=>alert('Open a module to see tool explainers with steps & links.')}/>)}</div></div>
+        <div><div className="font-semibold">Tools</div><div className="mt-3 flex flex-wrap gap-2">{Object.keys(TOOL_DB).map(k=><ToolChip key={k} name={k} onClick={()=>alert('Open a module to see full tool explainers with steps & links.')}/>)}</div></div>
         <div><div className="font-semibold">Get Started</div><div className="mt-3 flex gap-2">
           <button className="px-3 py-2 bg-brand text-black rounded" onClick={()=>setPage('learn')}>Start Learning</button>
-          <button className="px-3 py-2 bg-white/10 rounded" onClick={()=>setPage('maps')}>Course Maps</button>
+          <button className="px-3 py-2 bg-white/10 rounded" onClick={()=>setPage('roles')}>Choose a Role</button>
         </div></div>
       </div>
     </footer>
